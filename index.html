@@ -177,6 +177,28 @@ body.dark .prog-kpi{background:#1a1d27;border-color:#2a2d3a}
 .prog-kpi-sub{font-size:11px;color:#aaa;margin-top:3px}
 .trend-up{color:#16a37f}.trend-down{color:#d94f4f}.trend-flat{color:#888}
 
+
+
+/* ── Decision Engine + AI Coach ───────────────────────────── */
+.de-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px}
+.de-score-card{background:#fff;border-radius:12px;border:1px solid #eee;padding:14px 16px}
+body.dark .de-score-card{background:#1a1d27;border-color:#2a2d3a}
+.de-score{font-size:34px;font-weight:800;letter-spacing:-1px;margin:6px 0}
+.de-pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.de-pill.good{background:#e8f8f3;color:#0f7a5c}.de-pill.mid{background:#fff8e1;color:#8a6000}.de-pill.bad{background:#fff0f0;color:#8b0000}
+.de-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
+body.dark .de-row{border-color:#1e2130}
+.de-row span:first-child{color:#888}.de-row span:last-child{font-weight:600;text-align:left;direction:ltr}
+.de-bar{height:8px;background:#eee;border-radius:20px;overflow:hidden;margin-top:6px}
+body.dark .de-bar{background:#0f1117}
+.de-bar-fill{height:100%;border-radius:20px;background:#16a37f;transition:width .25s}
+.coach-card{background:#fff;border:1px solid #eee;border-radius:12px;padding:14px 16px}
+body.dark .coach-card{background:#1a1d27;border-color:#2a2d3a}
+.coach-title{font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.coach-main{font-size:17px;font-weight:700;margin-bottom:3px}.coach-sub{font-size:12px;color:#aaa;line-height:1.5}
+.coach-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:10px}
+.de-note{font-size:12px;color:#888;line-height:1.55;margin-top:10px}
+
 </style>
 </head>
 <body>
@@ -218,6 +240,8 @@ body.dark .prog-kpi{background:#1a1d27;border-color:#2a2d3a}
     <button class="tab" onclick="switchTab('heatmap',this)">📅 Heat Map</button>
     <button class="tab" onclick="switchTab('goals',this)">יעדים</button>
     <button class="tab" onclick="switchTab('watchlist',this)">👁 Watchlist</button>
+    <button class="tab" onclick="switchTab('decision',this)">🎯 Decision Engine</button>
+    <button class="tab" onclick="switchTab('coach',this)">🤖 AI Coach</button>
     <button class="tab" onclick="switchTab('quicktrade',this)">⚡ Quick Trade</button>
     <button class="tab" onclick="switchTab('progress',this)">📊 התקדמות</button>
   </div>
@@ -426,6 +450,40 @@ body.dark .prog-kpi{background:#1a1d27;border-color:#2a2d3a}
       <input id="watchlist-note" placeholder="הערה (אופציונלי)" style="max-width:200px">
     </div>
     <div id="watchlist-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px"></div>
+  </div>
+
+
+
+  <!-- DECISION ENGINE -->
+  <div id="tab-decision" class="panel">
+    <div class="card">
+      <div class="card-title">Decision Engine — בדיקת כניסה לפני עסקה</div>
+      <div class="de-grid">
+        <div class="form-group"><label>סימבול</label><input id="de-symbol" placeholder="ONDS" style="text-transform:uppercase;font-weight:700"></div>
+        <div class="form-group"><label>מחיר כניסה מתוכנן</label><input id="de-entry" type="number" step="0.01" placeholder="אופציונלי"></div>
+        <div class="form-group"><label>סטופ לוס</label><input id="de-stop" type="number" step="0.01" placeholder="חובה ל-R:R"></div>
+        <div class="form-group"><label>יעד מכירה</label><input id="de-target" type="number" step="0.01" placeholder="חובה ל-R:R"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-green" onclick="runDecisionEngine()">נתח מניה</button>
+        <button class="btn btn-outline" onclick="fillDecisionFromWatchlist()">בחר מה-Watchlist</button>
+      </div>
+      <div class="de-note">הכלי לא מחליף שיקול דעת ולא נותן המלצה אוטומטית. הוא נותן ציון משמעת לפי מגמה, RSI, נפח, תמיכה/התנגדות, Risk/Reward והיסטוריית המסחר שלך.</div>
+    </div>
+    <div id="decision-result"></div>
+  </div>
+
+  <!-- AI COACH -->
+  <div id="tab-coach" class="panel">
+    <div class="card">
+      <div class="card-title">AI Coach — ניתוח אופי המסחר שלך</div>
+      <div id="coach-summary" style="font-size:14px;line-height:1.65;color:#555"></div>
+    </div>
+    <div id="coach-grid" class="coach-list"></div>
+    <div class="card">
+      <div class="card-title">פעולות לשבוע הקרוב</div>
+      <div id="coach-actions" style="font-size:13px;line-height:1.8"></div>
+    </div>
   </div>
 
   <!-- QUICK TRADE -->
@@ -948,7 +1006,7 @@ function renderAll() {
   renderDrawdownChart(st); renderWeeklySummary();
   renderTrades(); renderJournal();
   renderAnalysis(st); renderHeatmap();
-  renderGoalsTab(st); renderPositions();
+  renderGoalsTab(st); renderPositions(); renderAICoach();
   updateFilters();
 }
 
@@ -1437,6 +1495,8 @@ function switchTab(name,btn) {
     connectPolygonWS();
   }
   if(name==='watchlist') { renderWatchlist(); if(watchlist.length>0) refreshWatchlist(); }
+  if(name==='decision') { renderDecisionStarter(); }
+  if(name==='coach') { renderAICoach(); }
   if(name==='quicktrade') { qtReset(); }
   if(name==='progress') renderProgress();
   if(name==='heatmap') renderHeatmap();
@@ -2149,6 +2209,210 @@ function renderProgress() {
   });
 }
 
+
+
+
+// ══════════════════════════════════════════════════════════════
+// DECISION ENGINE + AI COACH
+// ══════════════════════════════════════════════════════════════
+function scoreClass(score){ return score >= 75 ? 'good' : score >= 55 ? 'mid' : 'bad'; }
+function scoreText(score){ return score >= 75 ? 'מעניין לבדיקה' : score >= 55 ? 'לחכות לאישור' : 'לא מספיק איכותי'; }
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+function safeNum(v){ const n = parseFloat(v); return Number.isFinite(n) ? n : 0; }
+
+function renderDecisionStarter(){
+  const box = document.getElementById('decision-result');
+  if(!box || box.innerHTML.trim()) return;
+  box.innerHTML = `<div class="card"><div style="color:#888;font-size:13px;line-height:1.7">הכנס סימבול ולחץ <b>נתח מניה</b>. אם תמלא גם כניסה/סטופ/יעד, תקבל Risk/Reward וציון מדויק יותר.</div></div>`;
+}
+
+function fillDecisionFromWatchlist(){
+  if(!watchlist.length){ alert('אין סימבולים ב-Watchlist'); return; }
+  const sym = prompt('איזה סימבול לנתח?\n' + watchlist.map(w=>w.symbol).join(', '));
+  if(!sym) return;
+  document.getElementById('de-symbol').value = sym.trim().toUpperCase();
+  runDecisionEngine();
+}
+
+async function fetchIndicators(symbol){
+  const res = await fetch(`${API_URL}?action=getIndicators&symbol=${encodeURIComponent(symbol)}&t=${Date.now()}`, { cache:'no-store' });
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { throw new Error('השרת לא החזיר JSON תקין. צריך לעדכן את Apps Script החדש.'); }
+  if(!data.ok) throw new Error(data.error || 'לא הצלחתי לטעון אינדיקטורים');
+  return data.indicators;
+}
+
+function getSymbolHistory(symbol){
+  const arr = trades.filter(t => String(t.symbol).toUpperCase() === symbol);
+  const wins = arr.filter(t=>t.net>0), losses = arr.filter(t=>t.net<0);
+  const net = arr.reduce((s,t)=>s+t.net,0);
+  const wr = arr.length ? Math.round(wins.length / arr.length * 100) : null;
+  const avgHold = arr.length ? arr.reduce((s,t)=>s+(t.hold_days||0),0)/arr.length : null;
+  return {arr,wins,losses,net,wr,avgHold};
+}
+
+function buildDecisionScore(ind, entry, stop, target, hist){
+  const price = safeNum(ind.price || ind.close);
+  const sma20 = safeNum(ind.sma20), sma50 = safeNum(ind.sma50), sma200 = safeNum(ind.sma200);
+  const rsi = safeNum(ind.rsi14);
+  const volRatio = safeNum(ind.volumeRatio);
+  const support = safeNum(ind.support20), resistance = safeNum(ind.resistance20);
+  let parts = [];
+
+  let trend = 0;
+  if(price && sma20 && price > sma20) trend += 14;
+  if(price && sma50 && price > sma50) trend += 12;
+  if(sma20 && sma50 && sma20 > sma50) trend += 9;
+  if(price && sma200 && price > sma200) trend += 5;
+  trend = clamp(trend,0,35);
+  parts.push(['מגמה', trend, 35, trend>=26?'חיובית':trend>=16?'מעורבת':'חלשה']);
+
+  let rsiScore = 8;
+  if(rsi >= 45 && rsi <= 65) rsiScore = 20;
+  else if(rsi >= 35 && rsi < 45) rsiScore = 15;
+  else if(rsi > 65 && rsi <= 75) rsiScore = 11;
+  else if(rsi > 75) rsiScore = 4;
+  else if(rsi < 30) rsiScore = 6;
+  parts.push(['RSI', rsiScore, 20, rsi ? rsi.toFixed(1) : 'אין נתון']);
+
+  let volScore = volRatio >= 1.8 ? 15 : volRatio >= 1.2 ? 12 : volRatio >= 0.8 ? 8 : 4;
+  parts.push(['נפח מול ממוצע', volScore, 15, volRatio ? volRatio.toFixed(2)+'x' : 'אין נתון']);
+
+  const rr = (entry && stop && target && entry > stop && target > entry) ? (target-entry)/(entry-stop) : 0;
+  let rrScore = rr >= 3 ? 20 : rr >= 2 ? 16 : rr >= 1.5 ? 10 : rr > 0 ? 4 : 8;
+  parts.push(['Risk / Reward', rrScore, 20, rr ? '1:'+rr.toFixed(2) : 'לא מולא']);
+
+  let location = 0;
+  if(price && support){ const distSup = ((price-support)/price)*100; if(distSup >= 0 && distSup <= 8) location += 5; else if(distSup <= 15) location += 3; }
+  if(price && resistance){ const room = ((resistance-price)/price)*100; if(room >= 8) location += 5; else if(room >= 4) location += 3; }
+  parts.push(['תמיכה / התנגדות', location, 10, support&&resistance ? `$${support.toFixed(2)} / $${resistance.toFixed(2)}` : 'אין נתון']);
+
+  let score = parts.reduce((s,p)=>s+p[1],0);
+  let histText = 'אין היסטוריה אישית';
+  if(hist.arr.length >= 3){
+    const bonus = hist.wr >= 60 && hist.net > 0 ? 5 : hist.wr < 45 && hist.net < 0 ? -6 : 0;
+    score += bonus;
+    histText = `${hist.arr.length} עסקאות | WR ${hist.wr}% | ${f$(Math.round(hist.net))}`;
+  }
+  score = clamp(Math.round(score),0,100);
+  return {score, parts, rr, histText};
+}
+
+async function runDecisionEngine(){
+  const sym = (document.getElementById('de-symbol').value || '').trim().toUpperCase();
+  const entryInput = safeNum(document.getElementById('de-entry').value);
+  const stop = safeNum(document.getElementById('de-stop').value);
+  const target = safeNum(document.getElementById('de-target').value);
+  const box = document.getElementById('decision-result');
+  if(!sym){ alert('נא להכניס סימבול'); return; }
+  box.innerHTML = '<div class="card">טוען אינדיקטורים...</div>';
+  try{
+    const ind = await fetchIndicators(sym);
+    const entry = entryInput || safeNum(ind.price || ind.close);
+    const hist = getSymbolHistory(sym);
+    const result = buildDecisionScore(ind, entry, stop, target, hist);
+    const cls = scoreClass(result.score);
+    const recommendation = result.score >= 75
+      ? 'אפשר לשים במעקב לכניסה — רק עם טריגר ברור וסטופ מוגדר.'
+      : result.score >= 55
+        ? 'לא לרדוף. לחכות לאישור נוסף: פריצה, חזרה לתמיכה או שיפור R:R.'
+        : 'כרגע אין מספיק Edge. עדיף להמתין או להקטין סיכון.';
+
+    box.innerHTML = `
+      <div class="de-grid">
+        <div class="de-score-card">
+          <div class="card-title">ציון כניסה</div>
+          <div class="de-score ${result.score>=75?'green':result.score>=55?'blue':'red'}">${result.score}</div>
+          <span class="de-pill ${cls}">${scoreText(result.score)}</span>
+          <div class="de-note">${recommendation}</div>
+        </div>
+        <div class="de-score-card">
+          <div class="card-title">מחיר ואינדיקטורים</div>
+          <div class="de-row"><span>מחיר</span><span>$${safeNum(ind.price).toFixed(2)}</span></div>
+          <div class="de-row"><span>שינוי יומי</span><span>${safeNum(ind.changePct).toFixed(2)}%</span></div>
+          <div class="de-row"><span>SMA20 / SMA50</span><span>$${safeNum(ind.sma20).toFixed(2)} / $${safeNum(ind.sma50).toFixed(2)}</span></div>
+          <div class="de-row"><span>RSI 14</span><span>${safeNum(ind.rsi14).toFixed(1)}</span></div>
+          <div class="de-row"><span>נפח</span><span>${safeNum(ind.volumeRatio).toFixed(2)}x</span></div>
+        </div>
+        <div class="de-score-card">
+          <div class="card-title">התאמה אליך</div>
+          <div class="de-row"><span>היסטוריה בסימבול</span><span>${result.histText}</span></div>
+          <div class="de-row"><span>כניסה / סטופ / יעד</span><span>$${entry.toFixed(2)} / ${stop?'$'+stop.toFixed(2):'—'} / ${target?'$'+target.toFixed(2):'—'}</span></div>
+          <div class="de-row"><span>R:R</span><span>${result.rr ? '1:'+result.rr.toFixed(2) : 'לא חושב'}</span></div>
+          <div class="de-row"><span>תמיכה / התנגדות</span><span>$${safeNum(ind.support20).toFixed(2)} / $${safeNum(ind.resistance20).toFixed(2)}</span></div>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">פירוט הציון</div>
+        ${result.parts.map(p=>`<div style="margin-bottom:10px"><div class="de-row"><span>${p[0]}</span><span>${p[1]}/${p[2]} — ${p[3]}</span></div><div class="de-bar"><div class="de-bar-fill" style="width:${Math.round(p[1]/p[2]*100)}%"></div></div></div>`).join('')}
+      </div>`;
+  }catch(err){
+    box.innerHTML = `<div class="card"><div class="red" style="font-weight:700;margin-bottom:6px">לא הצלחתי לנתח את ${sym}</div><div style="font-size:13px;color:#888;line-height:1.6">${err.message}<br>אם זו פעם ראשונה אחרי העדכון — צריך להעתיק את Apps Script החדש ולעשות Deploy לגרסה חדשה.</div></div>`;
+  }
+}
+
+function bucketHold(days){ if(days <= 1) return '0-1 ימים'; if(days <= 5) return '2-5 ימים'; if(days <= 14) return '6-14 ימים'; return '15+ ימים'; }
+function bestBucket(map){
+  const arr = Object.entries(map).map(([k,v])=>({k, ...v, avg:v.count?v.net/v.count:0, wr:v.count?Math.round(v.wins/v.count*100):0})).filter(x=>x.count>=2);
+  return arr.sort((a,b)=>b.avg-a.avg)[0] || null;
+}
+function weekdayName(dateStr){ const d=parseDD(dateStr); return ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'][d.getDay()] || ''; }
+
+function buildCoachInsights(){
+  if(!trades.length) return null;
+  const wins = trades.filter(t=>t.net>0), losses = trades.filter(t=>t.net<0);
+  const totalNet = trades.reduce((s,t)=>s+t.net,0);
+  const wr = Math.round(wins.length/trades.length*100);
+  const avgWin = wins.length ? wins.reduce((s,t)=>s+t.net,0)/wins.length : 0;
+  const avgLoss = losses.length ? Math.abs(losses.reduce((s,t)=>s+t.net,0)/losses.length) : 0;
+  const pf = losses.length ? wins.reduce((s,t)=>s+t.gross,0)/Math.abs(losses.reduce((s,t)=>s+t.gross,0)) : 0;
+
+  const bySym = {}, byHold = {}, byDow = {};
+  trades.forEach(t=>{
+    const sym=t.symbol; bySym[sym]=bySym[sym]||{net:0,count:0,wins:0}; bySym[sym].net+=t.net; bySym[sym].count++; if(t.net>0) bySym[sym].wins++;
+    const hb=bucketHold(t.hold_days||0); byHold[hb]=byHold[hb]||{net:0,count:0,wins:0}; byHold[hb].net+=t.net; byHold[hb].count++; if(t.net>0) byHold[hb].wins++;
+    const dw=weekdayName(t.sell_date); byDow[dw]=byDow[dw]||{net:0,count:0,wins:0}; byDow[dw].net+=t.net; byDow[dw].count++; if(t.net>0) byDow[dw].wins++;
+  });
+  const syms = Object.entries(bySym).map(([k,v])=>({k,...v,avg:v.net/v.count,wr:Math.round(v.wins/v.count*100)})).filter(x=>x.count>=2);
+  const bestSym = [...syms].sort((a,b)=>b.net-a.net)[0];
+  const worstSym = [...syms].sort((a,b)=>a.net-b.net)[0];
+  const hold = bestBucket(byHold);
+  const dow = bestBucket(byDow);
+
+  const sorted=[...trades].sort((a,b)=>parseDD(a.sell_date)-parseDD(b.sell_date));
+  let curLoss=0,maxLoss=0,curWin=0,maxWin=0;
+  sorted.forEach(t=>{ if(t.net<0){curLoss++; maxLoss=Math.max(maxLoss,curLoss); curWin=0;} else if(t.net>0){curWin++; maxWin=Math.max(maxWin,curWin); curLoss=0;} });
+  const planned = trades.filter(t=>t.followed_plan === 'כן').length;
+  const planRate = trades.length ? Math.round(planned/trades.length*100) : 0;
+  return {wins,losses,totalNet,wr,avgWin,avgLoss,pf,bestSym,worstSym,hold,dow,maxLoss,maxWin,planRate};
+}
+
+function renderAICoach(){
+  const sum = document.getElementById('coach-summary');
+  const grid = document.getElementById('coach-grid');
+  const actions = document.getElementById('coach-actions');
+  if(!sum || !grid || !actions) return;
+  const c = buildCoachInsights();
+  if(!c){ sum.innerHTML='אין עדיין מספיק עסקאות לניתוח.'; grid.innerHTML=''; actions.innerHTML=''; return; }
+  const style = c.pf >= 1.5 ? 'יש לך Edge חיובי כשאתה שומר על משמעת וסיכון מוגדר.' : 'המערכת מצביעה שצריך להקשיח סינון כניסות וניהול הפסדים.';
+  sum.innerHTML = `<b>סיכום:</b> ${style}<br>Win Rate שלך הוא <b>${c.wr}%</b>, Profit Factor <b>${c.pf.toFixed(2)}</b>, והרווח המצטבר הוא <b class="${c.totalNet>=0?'green':'red'}">${f$(Math.round(c.totalNet))}</b>. היחס בין רווח ממוצע להפסד ממוצע הוא <b>${c.avgLoss? (c.avgWin/c.avgLoss).toFixed(2):'—'}</b>.`;
+  const cards = [
+    ['הסימבול החזק', c.bestSym ? `${c.bestSym.k} | ${f$(Math.round(c.bestSym.net))}` : 'אין מספיק נתון', c.bestSym ? `${c.bestSym.count} עסקאות, WR ${c.bestSym.wr}%` : ''],
+    ['הסימבול החלש', c.worstSym ? `${c.worstSym.k} | ${f$(Math.round(c.worstSym.net))}` : 'אין מספיק נתון', c.worstSym ? `${c.worstSym.count} עסקאות, WR ${c.worstSym.wr}%` : ''],
+    ['משך החזקה הכי טוב', c.hold ? c.hold.k : 'אין מספיק נתון', c.hold ? `ממוצע לעסקה ${f$(Math.round(c.hold.avg))}, WR ${c.hold.wr}%` : ''],
+    ['יום חזק', c.dow ? c.dow.k : 'אין מספיק נתון', c.dow ? `ממוצע לעסקה ${f$(Math.round(c.dow.avg))}, ${c.dow.count} עסקאות` : ''],
+    ['רצף הפסדים מקסימלי', `${c.maxLoss}`, 'זה המספר שצריך לתכנן אליו גודל פוזיציה'],
+    ['עסקאות לפי תוכנית', `${c.planRate}%`, 'ככל שתמלא יומן יותר, הניתוח יהיה מדויק יותר']
+  ];
+  grid.innerHTML = cards.map(x=>`<div class="coach-card"><div class="coach-title">${x[0]}</div><div class="coach-main">${x[1]}</div><div class="coach-sub">${x[2]}</div></div>`).join('');
+  const act = [];
+  if(c.avgLoss > c.avgWin) act.push('להקטין גודל פוזיציה עד שההפסד הממוצע קטן מהרווח הממוצע.');
+  if(c.maxLoss >= 3) act.push('אחרי 2 הפסדים רצופים — לעצור ולחזור רק עם Setup איכותי 75+.');
+  if(c.worstSym && c.worstSym.net < 0) act.push(`לא להיכנס שוב ל-${c.worstSym.k} בלי ציון Decision Engine מעל 75 ו-R:R מעל 1:2.`);
+  if(c.hold) act.push(`לתעדף עסקאות בטווח החזקה שבו אתה הכי חזק: ${c.hold.k}.`);
+  if(c.planRate < 50) act.push('למלא לפני כל עסקה: סיבת כניסה, סטופ, יעד ומה מבטל את הרעיון.');
+  actions.innerHTML = (act.length?act:['להמשיך לתעד. כרגע אין מספיק חריגה שדורשת פעולה מיוחדת.']).map(a=>`<div>• ${a}</div>`).join('');
+}
 
 // ── Seed ────────────────────────────────────────────────────
 function updateBannerVisibility(){updateBanner();}
