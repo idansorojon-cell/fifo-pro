@@ -1,0 +1,2182 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIFO PRO — דשבורד מסחר</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+body{background:#f5f5f5;color:#1a1a1a;font-size:14px;direction:rtl}
+.app{max-width:1100px;margin:0 auto;padding:20px 16px}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.header h1{font-size:20px;font-weight:600;letter-spacing:-0.3px}
+.header span{font-size:12px;color:#888;margin-top:2px;display:block}
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:opacity .15s}
+.btn-green{background:#16a37f;color:#fff}
+.btn-green:hover{opacity:.88}
+.btn-outline{background:#fff;border:1px solid #ddd;color:#444}
+.btn-outline:hover{background:#f5f5f5}
+.btn-sm{padding:5px 10px;font-size:12px}
+.tabs{display:flex;gap:0;border-bottom:1px solid #e5e5e5;margin-bottom:20px}
+.tab{padding:9px 16px;font-size:13px;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;color:#888;font-weight:500;transition:all .15s}
+.tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.kpi{background:#fff;border-radius:10px;padding:14px 16px;border:1px solid #eee}
+.kpi-label{font-size:11px;color:#888;margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.kpi-val{font-size:22px;font-weight:600}
+.kpi-sub{font-size:11px;color:#aaa;margin-top:3px}
+.green{color:#16a37f}.red{color:#d94f4f}.blue{color:#378add}
+.card{background:#fff;border-radius:12px;border:1px solid #eee;padding:16px 18px;margin-bottom:16px}
+.card-title{font-size:12px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.goal-bar-bg{background:#eee;border-radius:4px;height:7px;overflow:hidden;margin:8px 0}
+.goal-bar-fill{height:100%;border-radius:4px;transition:width .4s}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff;color:#1a1a1a;outline:none;transition:border .15s}
+input:focus,select:focus,textarea:focus{border-color:#16a37f}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.form-group label{font-size:11px;color:#888;display:block;margin-bottom:4px;font-weight:500}
+.preview-box{background:#f9f9f9;border:1px solid #eee;border-radius:8px;padding:10px 12px;font-size:12px;color:#666;margin-bottom:12px}
+.preview-box strong{font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{padding:8px 10px;text-align:right;color:#888;font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #eee;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+tr:hover td{background:#fafafa}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.badge-green{background:#e8f8f3;color:#0f7a5c}
+.badge-red{background:#fef0f0;color:#b33}
+.actions{display:flex;gap:5px}
+.icon-btn{background:none;border:1px solid #eee;border-radius:6px;padding:4px 7px;cursor:pointer;font-size:13px;color:#888;transition:all .15s}
+.icon-btn:hover{background:#f5f5f5;border-color:#ddd}
+.icon-btn.del:hover{background:#fff0f0;border-color:#fcc;color:#d94f4f}
+.search-row{display:flex;gap:8px;margin-bottom:12px}
+.search-row input,.search-row select{max-width:200px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px}
+.modal{background:#fff;border-radius:14px;padding:22px 24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:16px}
+.note-area{resize:vertical;min-height:100px}
+.chart-wrap{position:relative;height:200px;margin-bottom:4px}
+.sym-table td:first-child{font-weight:600}
+.panel{display:none}.panel.active{display:block}
+.month-good{color:#16a37f;font-weight:600}
+.month-bad{color:#d94f4f;font-weight:600}
+.sort-btn{cursor:pointer;user-select:none}
+.sort-btn:hover{color:#1a1a1a}
+@media(max-width:600px){.kpi-grid{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr 1fr}.search-row{flex-wrap:wrap}.search-row input,.search-row select{max-width:100%}}
+
+/* ── Dark Mode ─────────────────────────────────────────── */
+body.dark{background:#0f1117;color:#e8e8e8}
+body.dark .kpi{background:#1a1d27;border-color:#2a2d3a}
+body.dark .card{background:#1a1d27;border-color:#2a2d3a}
+body.dark input,body.dark select,body.dark textarea{background:#1a1d27;border-color:#2a2d3a;color:#e8e8e8}
+body.dark .modal{background:#1a1d27}
+body.dark table th{color:#888}
+body.dark td{border-color:#1e2130}
+body.dark tr:hover td{background:#1e2130}
+body.dark .tabs{border-color:#2a2d3a}
+body.dark .badge-green{background:#0d3d2a;color:#4ecca8}
+body.dark .badge-red{background:#3d1515;color:#ff7070}
+body.dark .icon-btn{border-color:#2a2d3a;color:#888}
+body.dark .icon-btn:hover{background:#2a2d3a}
+body.dark #sync-bar{border-color:#2a2d3a}
+body.dark .preview-box{background:#0f1117;border-color:#2a2d3a}
+body.dark .search-row input,body.dark .search-row select{background:#1a1d27;border-color:#2a2d3a;color:#e8e8e8}
+/* ── Live Price cards ──────────────────────────────────── */
+.pos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:16px}
+.pos-card{background:#fff;border-radius:12px;border:1px solid #eee;padding:14px 16px;position:relative}
+body.dark .pos-card{background:#1a1d27;border-color:#2a2d3a}
+.pos-card-sym{font-size:16px;font-weight:700;letter-spacing:.5px}
+.pos-card-price{font-size:22px;font-weight:600;margin:4px 0}
+.pos-card-row{display:flex;justify-content:space-between;font-size:12px;color:#888;margin-top:3px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#16a37f;display:inline-block;margin-left:5px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.pos-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+/* ── Insights ──────────────────────────────────────────── */
+.insight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:16px}
+.insight-card{background:#f9f9ff;border:1px solid #eee;border-radius:10px;padding:12px 14px}
+body.dark .insight-card{background:#1e2130;border-color:#2a2d3a}
+.insight-icon{font-size:20px;margin-bottom:6px}
+.insight-title{font-size:11px;color:#888;font-weight:500;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.insight-val{font-size:15px;font-weight:600}
+.insight-sub{font-size:11px;color:#aaa;margin-top:2px}
+/* ── Heat Map ──────────────────────────────────────────── */
+.heatmap-wrap{overflow-x:auto}
+.heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;min-width:560px}
+.hm-cell{height:32px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;cursor:default;transition:opacity .15s}
+.hm-cell:hover{opacity:.75}
+.hm-head{font-size:10px;color:#aaa;text-align:center;padding:4px 0}
+/* ── Mobile FAB ────────────────────────────────────────── */
+.fab{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:500;background:#16a37f;color:#fff;border:none;border-radius:50px;padding:14px 28px;font-size:15px;font-weight:600;box-shadow:0 4px 16px rgba(22,163,127,.4);cursor:pointer}
+@media(max-width:600px){
+  .fab{display:block}
+  #add-btn{display:none}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .kpi-val{font-size:18px}
+  .pos-grid{grid-template-columns:1fr}
+  .insight-grid{grid-template-columns:1fr 1fr}
+  table{font-size:11.5px}
+  td,th{padding:7px 6px}
+  .actions .icon-btn{padding:3px 5px;font-size:12px}
+}
+/* ── Advanced stats table ──────────────────────────────── */
+.stats-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.stats-2col{grid-template-columns:1fr}}
+.stat-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
+body.dark .stat-row{border-color:#1e2130}
+.stat-label{color:#888}
+.stat-val{font-weight:600}
+/* ── Dark mode toggle ──────────────────────────────────── */
+.dark-toggle{background:none;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:12px;cursor:pointer;color:#666}
+body.dark .dark-toggle{border-color:#2a2d3a;color:#aaa}
+
+
+/* ── Alert banner ──────────────────────────────────────────── */
+.alert-banner{display:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;margin-bottom:10px;animation:fadeIn .3s}
+.alert-banner.warn{background:#fff8e1;border:1px solid #ffd54f;color:#8a6000}
+.alert-banner.target{background:#e8f8f3;border:1px solid #16a37f;color:#0a5c3c}
+.alert-banner.stop{background:#fff0f0;border:1px solid #d94f4f;color:#8b0000}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+/* ── Weekly summary ────────────────────────────────────────── */
+.week-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.week-card{background:#fff;border-radius:10px;border:1px solid #eee;padding:12px 14px;text-align:center}
+body.dark .week-card{background:#1a1d27;border-color:#2a2d3a}
+.week-card-label{font-size:11px;color:#888;margin-bottom:4px}
+.week-card-val{font-size:18px;font-weight:600}
+/* ── Drawdown chart ────────────────────────────────────────── */
+.dd-wrap{position:relative;height:180px;margin-bottom:4px}
+/* ── R:R Calculator ────────────────────────────────────────── */
+.rr-box{background:#f9f9ff;border:1px solid #e0e0ff;border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:10px;display:none}
+body.dark .rr-box{background:#1a1d27;border-color:#2a2d3a}
+.rr-row{display:flex;justify-content:space-between;padding:3px 0}
+/* ── Symbol notes ──────────────────────────────────────────── */
+.sym-notes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:12px}
+.sym-note-card{background:#fff;border-radius:10px;border:1px solid #eee;padding:12px 14px}
+body.dark .sym-note-card{background:#1a1d27;border-color:#2a2d3a}
+.sym-note-sym{font-size:14px;font-weight:700;margin-bottom:6px}
+.sym-note-item{font-size:12px;color:#666;padding:4px 0;border-bottom:1px solid #f5f5f5;display:flex;gap:8px}
+body.dark .sym-note-item{border-color:#1e2130;color:#aaa}
+.sym-note-date{color:#aaa;font-size:11px;flex-shrink:0}
+/* ── Date picker input ──────────────────────────────────────── */
+input[type=date]{direction:ltr;text-align:right}
+
+
+/* ── Watchlist ─────────────────────────────────────────────── */
+.wl-card{background:#fff;border-radius:10px;border:1px solid #eee;padding:12px 14px;position:relative}
+body.dark .wl-card{background:#1a1d27;border-color:#2a2d3a}
+.wl-sym{font-size:15px;font-weight:700;letter-spacing:.3px}
+.wl-price{font-size:20px;font-weight:600;margin:4px 0}
+.wl-change{font-size:12px;font-weight:500}
+.wl-meta{font-size:11px;color:#aaa;margin-top:4px}
+.wl-note{font-size:11px;color:#888;margin-top:6px;font-style:italic}
+.wl-remove{position:absolute;top:8px;left:8px;background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:2px}
+.wl-remove:hover{color:#d94f4f}
+/* ── Progress ──────────────────────────────────────────────── */
+.prog-kpi{background:#fff;border-radius:10px;border:1px solid #eee;padding:14px 16px;text-align:center}
+body.dark .prog-kpi{background:#1a1d27;border-color:#2a2d3a}
+.prog-kpi-label{font-size:11px;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+.prog-kpi-val{font-size:20px;font-weight:600}
+.prog-kpi-sub{font-size:11px;color:#aaa;margin-top:3px}
+.trend-up{color:#16a37f}.trend-down{color:#d94f4f}.trend-flat{color:#888}
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sync status bar -->
+  <div id="sync-bar" style="display:none;padding:8px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;border:1px solid #eee"></div>
+
+  <!-- Alert banner for positions -->
+  <div id="alert-banner" class="alert-banner"></div>
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>FIFO PRO <span id="sync-spinner" style="display:none;font-size:14px;color:#aaa">⟳</span></h1>
+      <span id="last-updated">דשבורד מסחר</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="dark-toggle" onclick="toggleDark()" id="dark-btn">🌙 Dark</button>
+      <button id="add-btn" class="btn btn-green" onclick="openAddForm()">+ עסקה חדשה</button>
+    </div>
+  </div>
+
+  <!-- באנר ייבוא — מוסתר כברירת מחדל, מוצג רק אם Sheets ריק -->
+  <div id="seed-banner" style="display:none;background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;gap:10px">
+    <span>&#128203; פעם ראשונה? העלה את 108 העסקאות ההיסטוריות ל-Google Sheets</span>
+    <button class="btn btn-outline btn-sm" onclick="seedToSheets()">העלה היסטוריה</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" style="overflow-x:auto;flex-wrap:nowrap;white-space:nowrap">
+    <button class="tab active" onclick="switchTab('dashboard',this)">דשבורד</button>
+    <button class="tab" onclick="switchTab('positions',this)">📈 פוזיציות</button>
+    <button class="tab" onclick="switchTab('trades',this)">עסקאות</button>
+    <button class="tab" onclick="switchTab('journal',this)">יומן</button>
+    <button class="tab" onclick="switchTab('analysis',this)">ניתוח</button>
+    <button class="tab" onclick="switchTab('insights',this)">💡 תובנות</button>
+    <button class="tab" onclick="switchTab('symnotes',this)">📓 לפי סימבול</button>
+    <button class="tab" onclick="switchTab('heatmap',this)">📅 Heat Map</button>
+    <button class="tab" onclick="switchTab('goals',this)">יעדים</button>
+    <button class="tab" onclick="switchTab('watchlist',this)">👁 Watchlist</button>
+    <button class="tab" onclick="switchTab('quicktrade',this)">⚡ Quick Trade</button>
+    <button class="tab" onclick="switchTab('progress',this)">📊 התקדמות</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="tab-dashboard" class="panel active">
+    <div id="weekly-summary" class="week-grid" style="display:none"></div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+    <div class="card">
+      <div class="card-title">Equity Curve — רווח נטו מצטבר ($)</div>
+      <div class="chart-wrap"><canvas id="chart-equity"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">רווח נטו לפי חודש ($)</div>
+      <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Drawdown Chart — ירידה מהשיא ($)</div>
+      <div class="dd-wrap"><canvas id="chart-dd"></canvas></div>
+    </div>
+    <div class="card" id="goal-card"></div>
+  </div>
+
+  <!-- TRADES -->
+  <div id="tab-trades" class="panel">
+    <div class="search-row">
+      <input id="search-input" type="text" placeholder="חיפוש סימבול / תאריך / הערה..." oninput="renderTrades()">
+      <select id="filter-sym" onchange="renderTrades()">
+        <option value="">כל הסימבולים</option>
+      </select>
+      <select id="filter-month" onchange="renderTrades()">
+        <option value="">כל החודשים</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="exportCSV()" title="הורד CSV">⬇️ CSV</button>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th class="sort-btn" onclick="setSort('symbol')">סימבול <span id="s-symbol"></span></th>
+              <th class="sort-btn" onclick="setSort('sell_date')">מכירה <span id="s-sell_date"></span></th>
+              <th class="sort-btn" onclick="setSort('qty')">כמות <span id="s-qty"></span></th>
+              <th>קנייה $</th>
+              <th>מכירה $</th>
+              <th class="sort-btn" onclick="setSort('net')">נטו $ <span id="s-net"></span></th><th>נטו ₪</th>
+              <th class="sort-btn" onclick="setSort('pct')">% <span id="s-pct"></span></th>
+              <th>ימים</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="trades-tbody"></tbody>
+        </table>
+      </div>
+      <div style="padding:10px 14px;font-size:11px;color:#aaa;border-top:1px solid #f5f5f5" id="trades-count"></div>
+    </div>
+  </div>
+
+  <!-- POSITIONS -->
+  <div id="tab-positions" class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="font-size:13px;color:#888">פוזיציות פתוחות — מחירים Live</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#aaa">
+          <span id="ws-dot" style="width:7px;height:7px;border-radius:50%;background:#aaa;display:inline-block"></span>
+          <span id="ws-label">—</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="refreshPrices()">🔄 רענן מחירים</button>
+        <button class="btn btn-green btn-sm" onclick="openPosForm()">+ פוזיציה חדשה</button>
+      </div>
+    </div>
+    <div id="pos-summary" style="display:none;background:#fff;border-radius:10px;border:1px solid #eee;padding:12px 16px;margin-bottom:12px;display:flex;gap:20px;flex-wrap:wrap"></div>
+    <div id="pos-grid" class="pos-grid"></div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>סימבול</th><th>כמות</th><th>מחיר קנייה</th><th>מחיר Live</th>
+            <th>P&L $</th><th>P&L ₪</th><th>P&L %</th><th>שווי</th><th>יעד</th><th>סטופ</th><th></th>
+          </tr></thead>
+          <tbody id="pos-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#aaa;margin-top:8px">* מחירים דרך Yahoo Finance (Real-Time). Pre/After Market מוצג כשזמין.</div>
+  </div>
+
+  <!-- JOURNAL -->
+  <div id="tab-journal" class="panel">
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:13px;color:#888">יומן מסחר</span>
+      <input id="journal-search" type="text" placeholder="חיפוש..." oninput="renderJournal()" style="max-width:160px">
+      <select id="journal-filter-sym" onchange="renderJournal()" style="max-width:130px"><option value="">כל הסימבולים</option></select>
+      <select id="journal-filter-plan" onchange="renderJournal()" style="max-width:140px">
+        <option value="">כל העסקאות</option>
+        <option value="כן">לפי תוכנית ✓</option>
+        <option value="לא">לא לפי תוכנית</option>
+      </select>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>סימבול</th><th>תאריך</th><th>נטו</th><th>סיבת כניסה</th><th>סיבת יציאה</th>
+            <th>כיבד סטופ</th><th>לפי תוכנית</th><th>לקח</th><th>מצב רגשי</th><th></th>
+          </tr></thead>
+          <tbody id="journal-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYSIS -->
+  <div id="tab-analysis" class="panel">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card">
+        <div class="card-title">רווח נטו לפי סימבול</div>
+        <div style="position:relative;height:300px"><canvas id="chart-sym"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Win Rate לפי סימבול</div>
+        <div style="position:relative;height:300px"><canvas id="chart-wr"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">סיכום לפי סימבול</div>
+      <div style="overflow-x:auto">
+        <table class="sym-table" id="sym-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SYMBOL NOTES -->
+  <div id="tab-symnotes" class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:13px;color:#888">תובנות ולקחים לפי סימבול</div>
+      <input id="symnote-search" type="text" placeholder="חיפוש סימבול..." oninput="renderSymNotes()" style="max-width:160px">
+    </div>
+    <div id="sym-notes-container" class="sym-notes-grid"></div>
+  </div>
+
+  <!-- INSIGHTS -->
+  <div id="tab-insights" class="panel">
+    <div style="margin-bottom:16px;font-size:13px;color:#888">תובנות אוטומטיות מהנתונים שלך</div>
+    <div id="insights-grid" class="insight-grid"></div>
+    <div class="stats-2col">
+      <div class="card">
+        <div class="card-title">סטטיסטיקות מתקדמות</div>
+        <div id="adv-stats"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">רווח לפי יום בשבוע</div>
+        <div style="position:relative;height:200px"><canvas id="chart-dow"></canvas></div>
+      </div>
+    </div>
+    <div class="stats-2col">
+      <div class="card">
+        <div class="card-title">רווח לפי משך החזקה (ימים)</div>
+        <div style="position:relative;height:200px"><canvas id="chart-hold"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">רווח לפי גודל פוזיציה ($)</div>
+        <div style="position:relative;height:200px"><canvas id="chart-size"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEATMAP -->
+  <div id="tab-heatmap" class="panel">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
+      <div style="font-size:13px;color:#888">לוח שנה — רווח/הפסד יומי</div>
+      <select id="hm-year" onchange="renderHeatmap()" style="width:auto;padding:5px 8px"></select>
+    </div>
+    <div id="heatmap-container"></div>
+  </div>
+
+  <!-- GOALS -->
+  <div id="tab-goals" class="panel">
+    <div class="card">
+      <div class="card-title">יעד חודשי</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
+        <input type="number" id="goal-input" style="max-width:130px" placeholder="יעד $">
+        <button class="btn btn-green btn-sm" onclick="saveGoal()">עדכן</button>
+      </div>
+      <div id="goal-detail"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">היסטוריית חודשים</div>
+      <div style="overflow-x:auto"><table id="month-history-table"></table></div>
+    </div>
+  </div>
+
+  <!-- WATCHLIST -->
+  <div id="tab-watchlist" class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:13px;color:#888">מעקב סימבולים — מחירים Live</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="refreshWatchlist()">🔄 רענן</button>
+        <button class="btn btn-green btn-sm" onclick="addWatchlistItem()">+ הוסף סימבול</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <input id="watchlist-input" placeholder="הכנס סימבול (למשל AAPL)" style="max-width:200px;text-transform:uppercase" onkeydown="if(event.key==='Enter')addWatchlistItem()">
+      <input id="watchlist-note" placeholder="הערה (אופציונלי)" style="max-width:200px">
+    </div>
+    <div id="watchlist-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px"></div>
+  </div>
+
+  <!-- QUICK TRADE -->
+  <div id="tab-quicktrade" class="panel">
+    <div style="font-size:13px;color:#888;margin-bottom:14px">⚡ הוספת עסקה מהירה</div>
+    <div style="max-width:500px">
+      <div class="card">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div class="form-group">
+            <label>סימבול</label>
+            <input id="qt-symbol" placeholder="AAPL" style="text-transform:uppercase;font-size:16px;font-weight:600" oninput="qtFetchPrice()">
+          </div>
+          <div class="form-group">
+            <label>מחיר נוכחי</label>
+            <div id="qt-live-price" style="padding:8px 10px;font-size:16px;font-weight:600;color:#16a37f;border:1px solid #eee;border-radius:8px;min-height:38px">—</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+          <div class="form-group">
+            <label>פעולה</label>
+            <select id="qt-action" onchange="qtCalc()" style="font-weight:600">
+              <option value="buy">🟢 קנייה</option>
+              <option value="sell">🔴 מכירה</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>כמות</label>
+            <input id="qt-qty" type="number" placeholder="100" oninput="qtCalc()">
+          </div>
+          <div class="form-group">
+            <label>מחיר ביצוע ($)</label>
+            <input id="qt-price" type="number" step="0.01" placeholder="10.00" oninput="qtCalc()">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+          <div class="form-group">
+            <label>תאריך קנייה</label>
+            <input id="qt-buy-date" type="date">
+          </div>
+          <div class="form-group">
+            <label>תאריך מכירה</label>
+            <input id="qt-sell-date" type="date">
+          </div>
+          <div class="form-group">
+            <label>מחיר קנייה ($)</label>
+            <input id="qt-buy-price" type="number" step="0.01" placeholder="רק למכירה" oninput="qtCalc()">
+          </div>
+        </div>
+
+        <!-- Position Sizer -->
+        <div style="background:#f0f7ff;border:1px solid #cce0ff;border-radius:8px;padding:12px;margin-bottom:12px">
+          <div style="font-size:12px;font-weight:600;color:#378add;margin-bottom:8px">📐 Position Sizer</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+            <div class="form-group">
+              <label>גודל תיק ($)</label>
+              <input id="qt-portfolio" type="number" placeholder="67000" oninput="qtCalc()" value="67000">
+            </div>
+            <div class="form-group">
+              <label>% סיכון מקסימלי</label>
+              <input id="qt-risk-pct" type="number" step="0.1" placeholder="1.0" value="1.0" oninput="qtCalc()">
+            </div>
+            <div class="form-group">
+              <label>מחיר סטופ ($)</label>
+              <input id="qt-stop-price" type="number" step="0.01" placeholder="9.00" oninput="qtCalc()">
+            </div>
+          </div>
+          <div id="qt-sizer-result" style="font-size:13px;color:#555"></div>
+        </div>
+
+        <div id="qt-preview" style="background:#f9f9f9;border:1px solid #eee;border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px;display:none"></div>
+
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-green" onclick="qtSubmit()" style="flex:1;font-size:15px;padding:12px">✓ שמור עסקה</button>
+          <button class="btn btn-outline" onclick="qtReset()">אפס</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="tab-progress" class="panel">
+    <div style="font-size:13px;color:#888;margin-bottom:16px">התקדמות לאורך זמן — האם אתה משתפר?</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:20px" id="progress-kpis"></div>
+    <div class="stats-2col">
+      <div class="card">
+        <div class="card-title">Win Rate לאורך זמן</div>
+        <div style="position:relative;height:220px"><canvas id="chart-winrate-time"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">רווח נטו חודשי — ממוצע נע 3 חודשים</div>
+        <div style="position:relative;height:220px"><canvas id="chart-rolling-avg"></canvas></div>
+      </div>
+    </div>
+    <div class="stats-2col">
+      <div class="card">
+        <div class="card-title">Profit Factor לאורך זמן</div>
+        <div style="position:relative;height:220px"><canvas id="chart-pf-time"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">שבוע חזק בחודש (ממוצע)</div>
+        <div style="position:relative;height:220px"><canvas id="chart-week-of-month"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div id="modal-form" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeForm()">
+  <div class="modal">
+    <h3 id="modal-title">עסקה חדשה</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>סימבול</label><input id="f-symbol" placeholder="AAPL" oninput="calcPreview()"></div>
+      <div class="form-group"><label>תאריך קנייה</label><input id="f-buy-date" placeholder="DD/MM/YYYY" oninput="calcPreview()"></div>
+      <div class="form-group"><label>תאריך מכירה</label><input id="f-sell-date" placeholder="DD/MM/YYYY" oninput="calcPreview()"></div>
+      <div class="form-group"><label>כמות</label><input id="f-qty" type="number" placeholder="100" oninput="calcPreview()"></div>
+      <div class="form-group"><label>מחיר קנייה ($)</label><input id="f-buy-price" type="number" step="0.01" placeholder="10.00" oninput="calcPreview()"></div>
+      <div class="form-group"><label>מחיר מכירה ($)</label><input id="f-sell-price" type="number" step="0.01" placeholder="12.50" oninput="calcPreview()"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:12px"><label>הערות</label><input id="f-notes" placeholder="אופציונלי..."></div>
+    <div class="preview-box" id="preview-box" style="display:none"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-green" onclick="submitTrade()">שמור</button>
+      <button class="btn btn-outline" onclick="closeForm()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- POSITION FORM MODAL -->
+<div id="modal-pos" class="modal-overlay" style="display:none" onclick="if(event.target===this)closePosForm()">
+  <div class="modal">
+    <h3 id="pos-modal-title">פוזיציה חדשה</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>סימבול</label><input id="pf-symbol" placeholder="AAPL" style="text-transform:uppercase"></div>
+      <div class="form-group"><label>תאריך כניסה</label><input id="pf-date" type="date"></div>
+      <div class="form-group"><label>כמות</label><input id="pf-qty" type="number" placeholder="100"></div>
+      <div class="form-group"><label>מחיר קנייה ממוצע ($)</label><input id="pf-price" type="number" step="0.01" placeholder="10.00" oninput="calcRR()"></div>
+      <div class="form-group"><label>יעד מכירה ($)</label><input id="pf-target" type="number" step="0.01" placeholder="15.00" oninput="calcRR()"></div>
+      <div class="form-group"><label>סטופ לוס ($)</label><input id="pf-stop" type="number" step="0.01" placeholder="8.00" oninput="calcRR()"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:8px"><label>הערות</label><input id="pf-notes" placeholder="אופציונלי..."></div>
+    <div class="rr-box" id="rr-box">
+      <div style="font-weight:600;margin-bottom:6px;color:#378add">📐 Risk/Reward Calculator</div>
+      <div class="rr-row"><span>Risk per share</span><span id="rr-risk">—</span></div>
+      <div class="rr-row"><span>Reward per share</span><span id="rr-reward">—</span></div>
+      <div class="rr-row"><span style="font-weight:600">R:R Ratio</span><span id="rr-ratio" style="font-weight:600">—</span></div>
+      <div class="rr-row"><span>סיכון כולל (1% תיק = $67k)</span><span id="rr-total-risk">—</span></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-green" onclick="submitPos()">שמור</button>
+      <button class="btn btn-outline" onclick="closePosForm()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOURNAL EDIT MODAL -->
+<div id="modal-journal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeJournal()">
+  <div class="modal">
+    <h3>יומן עסקה — <span id="j-title"></span></h3>
+    <div class="form-grid">
+      <div class="form-group"><label>סיבת כניסה</label><input id="j-entry" placeholder="למה נכנסת?"></div>
+      <div class="form-group"><label>סיבת יציאה</label><input id="j-exit" placeholder="למה יצאת?"></div>
+      <div class="form-group"><label>כיבדתי סטופ?</label>
+        <select id="j-stop"><option value="">---</option><option value="כן">כן</option><option value="לא">לא</option><option value="לא היה סטופ">לא היה סטופ</option></select>
+      </div>
+      <div class="form-group"><label>פעלתי לפי תוכנית?</label>
+        <select id="j-plan"><option value="">---</option><option value="כן">כן</option><option value="לא">לא</option><option value="חלקית">חלקית</option></select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:10px"><label>לקח מהעסקה</label><textarea id="j-lesson" rows="2" placeholder="מה למדת?"></textarea></div>
+    <div class="form-group" style="margin-bottom:12px"><label>מצב רגשי / הערה חופשית</label><textarea id="j-emotion" rows="2" placeholder="איך הרגשת? מה המחשבות?"></textarea></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-green" onclick="saveJournal()">שמור</button>
+      <button class="btn btn-outline" onclick="closeJournal()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTE MODAL -->
+<div id="modal-note" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeNote()">
+  <div class="modal">
+    <h3>הערה לעסקה</h3>
+    <div class="form-group" style="margin-bottom:12px">
+      <textarea id="note-text" class="note-area" placeholder="כתוב הערה..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-green" onclick="saveNote()">שמור</button>
+      <button class="btn btn-outline" onclick="closeNote()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile FAB -->
+<button class="fab" onclick="openAddForm()">+ עסקה חדשה</button>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzbiOcOGu5Qh8Zte_eU04BIh-ufie_V87nq8otruMBgwuil3DYJR5qn0qgo4VFsY-R5sw/exec";
+
+const TAX = 0.25;
+const DEFAULT_USD_ILS = 3.5; // fallback אם חסר שער לחודש
+// שער דולר ממוצע חודשי — אפשר לעדכן כאן לפי נתוני בנק ישראל / הבנק שלך
+const MONTHLY_USD_ILS = {
+  '2025-03':3.66,'2025-04':3.68,'2025-05':3.59,'2025-06':3.45,
+  '2025-07':3.38,'2025-08':3.36,'2025-09':3.34,'2025-10':3.29,
+  '2025-11':3.24,'2025-12':3.20,
+  '2026-01':3.15,'2026-02':3.10,'2026-03':3.06,'2026-04':3.02,
+  '2026-05':2.94,'2026-06':2.98
+};
+const GREEN = '#16a37f', RED = '#d94f4f', BLUE = '#378add';
+
+const SEED = [{"id":1,"symbol":"QBTS","buy_date":"10/03/2025","sell_date":"14/03/2025","qty":350,"buy_price":4.88,"sell_price":9.85,"cost":1708,"gross":1739.5,"tax":434.88,"net":1304.62,"pct":101.84,"month":"2025-03","hold_days":4,"notes":""},{"id":2,"symbol":"INTC","buy_date":"05/03/2025","sell_date":"19/03/2025","qty":177,"buy_price":20.38,"sell_price":24.12,"cost":3607.26,"gross":661.98,"tax":165.5,"net":496.48,"pct":18.35,"month":"2025-03","hold_days":14,"notes":""},{"id":3,"symbol":"QBTS","buy_date":"10/03/2025","sell_date":"19/03/2025","qty":450,"buy_price":4.88,"sell_price":10.62,"cost":2196,"gross":2583,"tax":645.75,"net":1937.25,"pct":117.62,"month":"2025-03","hold_days":9,"notes":""},{"id":4,"symbol":"MU","buy_date":"19/03/2025","sell_date":"24/03/2025","qty":33,"buy_price":101,"sell_price":96.85,"cost":3333,"gross":-136.95,"tax":-34.24,"net":-102.71,"pct":-4.11,"month":"2025-03","hold_days":5,"notes":""},{"id":5,"symbol":"ARM","buy_date":"19/03/2025","sell_date":"31/03/2025","qty":34,"buy_price":120,"sell_price":105.06,"cost":4080,"gross":-507.96,"tax":-126.99,"net":-380.97,"pct":-12.45,"month":"2025-03","hold_days":12,"notes":""},{"id":6,"symbol":"MU","buy_date":"19/03/2025","sell_date":"31/03/2025","qty":1,"buy_price":101,"sell_price":64.98,"cost":101,"gross":-36.02,"tax":-9.01,"net":-27.01,"pct":-35.66,"month":"2025-03","hold_days":12,"notes":""},{"id":7,"symbol":"MU","buy_date":"19/03/2025","sell_date":"31/03/2025","qty":34,"buy_price":102.36,"sell_price":64.98,"cost":3480.24,"gross":-1270.92,"tax":-317.73,"net":-953.19,"pct":-36.52,"month":"2025-03","hold_days":12,"notes":""},{"id":8,"symbol":"NVDA","buy_date":"01/04/2025","sell_date":"16/04/2025","qty":35,"buy_price":109.55,"sell_price":104,"cost":3834.25,"gross":-194.25,"tax":-48.56,"net":-145.69,"pct":-5.07,"month":"2025-04","hold_days":15,"notes":""},{"id":9,"symbol":"NVDA","buy_date":"10/04/2025","sell_date":"16/04/2025","qty":22,"buy_price":108.7,"sell_price":104,"cost":2391.4,"gross":-103.4,"tax":-25.85,"net":-77.55,"pct":-4.32,"month":"2025-04","hold_days":6,"notes":""},{"id":10,"symbol":"NFLX","buy_date":"17/04/2025","sell_date":"22/04/2025","qty":5,"buy_price":971.68,"sell_price":1058.02,"cost":4858.4,"gross":431.7,"tax":107.93,"net":323.77,"pct":8.89,"month":"2025-04","hold_days":5,"notes":""},{"id":11,"symbol":"QBTS","buy_date":"03/04/2025","sell_date":"24/04/2025","qty":500,"buy_price":6.96,"sell_price":7.37,"cost":3480,"gross":205,"tax":51.25,"net":153.75,"pct":5.89,"month":"2025-04","hold_days":21,"notes":""},{"id":12,"symbol":"NVDA","buy_date":"23/04/2025","sell_date":"25/04/2025","qty":50,"buy_price":103.66,"sell_price":110.97,"cost":5183,"gross":365.5,"tax":91.38,"net":274.12,"pct":7.05,"month":"2025-04","hold_days":2,"notes":""},{"id":13,"symbol":"AMZN","buy_date":"01/05/2025","sell_date":"02/05/2025","qty":50,"buy_price":190,"sell_price":190.75,"cost":9500,"gross":37.5,"tax":9.38,"net":28.12,"pct":0.39,"month":"2025-05","hold_days":1,"notes":""},{"id":14,"symbol":"QBTS","buy_date":"07/05/2025","sell_date":"08/05/2025","qty":300,"buy_price":6.94,"sell_price":9.27,"cost":2082,"gross":699,"tax":174.75,"net":524.25,"pct":33.57,"month":"2025-05","hold_days":1,"notes":""},{"id":15,"symbol":"QBTS","buy_date":"07/05/2025","sell_date":"08/05/2025","qty":200,"buy_price":7.05,"sell_price":9.27,"cost":1410,"gross":444,"tax":111,"net":333,"pct":31.49,"month":"2025-05","hold_days":1,"notes":""},{"id":16,"symbol":"QBTS","buy_date":"07/05/2025","sell_date":"08/05/2025","qty":500,"buy_price":7.05,"sell_price":9,"cost":3525,"gross":975,"tax":243.75,"net":731.25,"pct":27.66,"month":"2025-05","hold_days":1,"notes":""},{"id":17,"symbol":"SOUN","buy_date":"06/05/2025","sell_date":"12/05/2025","qty":415,"buy_price":8.94,"sell_price":11,"cost":3710.1,"gross":854.9,"tax":213.73,"net":641.17,"pct":23.04,"month":"2025-05","hold_days":6,"notes":""},{"id":18,"symbol":"SOUN","buy_date":"06/05/2025","sell_date":"12/05/2025","qty":140,"buy_price":8.94,"sell_price":11.01,"cost":1251.6,"gross":289.8,"tax":72.45,"net":217.35,"pct":23.15,"month":"2025-05","hold_days":6,"notes":""},{"id":19,"symbol":"SOUN","buy_date":"06/05/2025","sell_date":"12/05/2025","qty":275,"buy_price":8.85,"sell_price":11.01,"cost":2433.75,"gross":594,"tax":148.5,"net":445.5,"pct":24.41,"month":"2025-05","hold_days":6,"notes":""},{"id":20,"symbol":"CEP","buy_date":"19/05/2025","sell_date":"19/05/2025","qty":300,"buy_price":34.04,"sell_price":36,"cost":10212,"gross":588,"tax":147,"net":441,"pct":5.76,"month":"2025-05","hold_days":0,"notes":""},{"id":21,"symbol":"QBTS","buy_date":"21/05/2025","sell_date":"21/05/2025","qty":500,"buy_price":16.92,"sell_price":16.01,"cost":8460,"gross":-455,"tax":-113.75,"net":-341.25,"pct":-5.38,"month":"2025-05","hold_days":0,"notes":""},{"id":22,"symbol":"CEP","buy_date":"22/05/2025","sell_date":"22/05/2025","qty":300,"buy_price":48.5,"sell_price":49.7,"cost":14550,"gross":360,"tax":90,"net":270,"pct":2.47,"month":"2025-05","hold_days":0,"notes":""},{"id":23,"symbol":"OKLO","buy_date":"23/05/2025","sell_date":"23/05/2025","qty":300,"buy_price":44,"sell_price":45.85,"cost":13200,"gross":555,"tax":138.75,"net":416.25,"pct":4.2,"month":"2025-05","hold_days":0,"notes":""},{"id":24,"symbol":"JTAI","buy_date":"27/05/2025","sell_date":"27/05/2025","qty":2000,"buy_price":4.41,"sell_price":4.07,"cost":8820,"gross":-680,"tax":-170,"net":-510,"pct":-7.71,"month":"2025-05","hold_days":0,"notes":""},{"id":25,"symbol":"JTAI","buy_date":"27/05/2025","sell_date":"27/05/2025","qty":1500,"buy_price":4.18,"sell_price":4.07,"cost":6270,"gross":-165,"tax":-41.25,"net":-123.75,"pct":-2.63,"month":"2025-05","hold_days":0,"notes":""},{"id":26,"symbol":"OSCR","buy_date":"03/06/2025","sell_date":"06/06/2025","qty":800,"buy_price":14.5,"sell_price":15.5,"cost":11600,"gross":800,"tax":200,"net":600,"pct":6.9,"month":"2025-06","hold_days":3,"notes":""},{"id":27,"symbol":"SOUN","buy_date":"04/06/2025","sell_date":"06/06/2025","qty":650,"buy_price":10.08,"sell_price":10.1,"cost":6552,"gross":13,"tax":3.25,"net":9.75,"pct":0.2,"month":"2025-06","hold_days":2,"notes":""},{"id":28,"symbol":"NBIS","buy_date":"05/06/2025","sell_date":"06/06/2025","qty":155,"buy_price":46.57,"sell_price":47,"cost":7218.35,"gross":66.65,"tax":16.66,"net":49.99,"pct":0.92,"month":"2025-06","hold_days":1,"notes":""},{"id":29,"symbol":"BULL","buy_date":"10/06/2025","sell_date":"11/06/2025","qty":500,"buy_price":11.22,"sell_price":10.93,"cost":5610,"gross":-145,"tax":-36.25,"net":-108.75,"pct":-2.58,"month":"2025-06","hold_days":1,"notes":""},{"id":30,"symbol":"CEP","buy_date":"09/06/2025","sell_date":"30/06/2025","qty":300,"buy_price":38,"sell_price":27.39,"cost":11400,"gross":-3183,"tax":-795.75,"net":-2387.25,"pct":-27.92,"month":"2025-06","hold_days":21,"notes":""},{"id":31,"symbol":"QBTS","buy_date":"01/07/2025","sell_date":"03/07/2025","qty":450,"buy_price":15.13,"sell_price":16.73,"cost":6808.5,"gross":720,"tax":180,"net":540,"pct":10.58,"month":"2025-07","hold_days":2,"notes":""},{"id":32,"symbol":"SOUN","buy_date":"11/07/2025","sell_date":"31/07/2025","qty":700,"buy_price":12,"sell_price":13.01,"cost":8400,"gross":707,"tax":176.75,"net":530.25,"pct":8.42,"month":"2025-07","hold_days":20,"notes":""},{"id":33,"symbol":"SOUN","buy_date":"11/07/2025","sell_date":"31/07/2025","qty":300,"buy_price":12,"sell_price":13.7,"cost":3600,"gross":510,"tax":127.5,"net":382.5,"pct":14.17,"month":"2025-07","hold_days":20,"notes":""},{"id":34,"symbol":"SOUN","buy_date":"14/07/2025","sell_date":"31/07/2025","qty":400,"buy_price":11.86,"sell_price":13.7,"cost":4744,"gross":736,"tax":184,"net":552,"pct":15.51,"month":"2025-07","hold_days":17,"notes":""},{"id":35,"symbol":"BMNR","buy_date":"21/07/2025","sell_date":"31/07/2025","qty":100,"buy_price":43,"sell_price":47,"cost":4300,"gross":400,"tax":100,"net":300,"pct":9.3,"month":"2025-07","hold_days":10,"notes":""},{"id":36,"symbol":"RGTI","buy_date":"11/08/2025","sell_date":"31/08/2025","qty":400,"buy_price":16,"sell_price":20.5,"cost":6400,"gross":1800,"tax":450,"net":1350,"pct":28.13,"month":"2025-08","hold_days":20,"notes":""},{"id":37,"symbol":"QBTS","buy_date":"11/08/2025","sell_date":"31/08/2025","qty":150,"buy_price":17.6,"sell_price":25.25,"cost":2640,"gross":1147.5,"tax":286.88,"net":860.62,"pct":43.47,"month":"2025-08","hold_days":20,"notes":""},{"id":38,"symbol":"QBTS","buy_date":"11/08/2025","sell_date":"31/08/2025","qty":150,"buy_price":17.6,"sell_price":25.4,"cost":2640,"gross":1170,"tax":292.5,"net":877.5,"pct":44.32,"month":"2025-08","hold_days":20,"notes":""},{"id":39,"symbol":"QUBT","buy_date":"11/08/2025","sell_date":"31/08/2025","qty":300,"buy_price":16.5,"sell_price":23,"cost":4950,"gross":1950,"tax":487.5,"net":1462.5,"pct":39.39,"month":"2025-08","hold_days":20,"notes":""},{"id":40,"symbol":"QUBT","buy_date":"14/08/2025","sell_date":"31/08/2025","qty":180,"buy_price":15.3,"sell_price":23,"cost":2754,"gross":1386,"tax":346.5,"net":1039.5,"pct":50.33,"month":"2025-08","hold_days":17,"notes":""},{"id":41,"symbol":"LAC","buy_date":"25/09/2025","sell_date":"25/09/2025","qty":900,"buy_price":6.9,"sell_price":7.2,"cost":6210,"gross":270,"tax":67.5,"net":202.5,"pct":4.35,"month":"2025-09","hold_days":0,"notes":""},{"id":42,"symbol":"LAC","buy_date":"25/09/2025","sell_date":"25/09/2025","qty":900,"buy_price":6.9,"sell_price":7.4,"cost":6210,"gross":450,"tax":112.5,"net":337.5,"pct":7.25,"month":"2025-09","hold_days":0,"notes":""},{"id":43,"symbol":"QUBT","buy_date":"03/10/2025","sell_date":"03/10/2025","qty":700,"buy_price":21.4,"sell_price":24,"cost":14980,"gross":1820,"tax":455,"net":1365,"pct":12.15,"month":"2025-10","hold_days":0,"notes":""},{"id":44,"symbol":"AMD","buy_date":"06/10/2025","sell_date":"06/10/2025","qty":86,"buy_price":208,"sell_price":210.02,"cost":17888,"gross":173.72,"tax":43.43,"net":130.29,"pct":0.97,"month":"2025-10","hold_days":0,"notes":""},{"id":45,"symbol":"QUBT","buy_date":"07/10/2025","sell_date":"07/10/2025","qty":860,"buy_price":21.4,"sell_price":21.88,"cost":18404,"gross":412.8,"tax":103.2,"net":309.6,"pct":2.24,"month":"2025-10","hold_days":0,"notes":""},{"id":46,"symbol":"QBTS","buy_date":"08/10/2025","sell_date":"13/10/2025","qty":540,"buy_price":36.4,"sell_price":36.4,"cost":19656,"gross":0,"tax":0,"net":0,"pct":0,"month":"2025-10","hold_days":5,"notes":""},{"id":47,"symbol":"RR","buy_date":"14/10/2025","sell_date":"14/10/2025","qty":2000,"buy_price":6.8,"sell_price":6.85,"cost":13600,"gross":100,"tax":25,"net":75,"pct":0.74,"month":"2025-10","hold_days":0,"notes":""},{"id":48,"symbol":"RR","buy_date":"14/10/2025","sell_date":"14/10/2025","qty":2000,"buy_price":6.65,"sell_price":6.75,"cost":13300,"gross":200,"tax":50,"net":150,"pct":1.5,"month":"2025-10","hold_days":0,"notes":""},{"id":49,"symbol":"RR","buy_date":"15/10/2025","sell_date":"30/10/2025","qty":1500,"buy_price":6.19,"sell_price":4.87,"cost":9285,"gross":-1980,"tax":-495,"net":-1485,"pct":-21.32,"month":"2025-10","hold_days":15,"notes":""},{"id":50,"symbol":"RR","buy_date":"15/10/2025","sell_date":"30/10/2025","qty":840,"buy_price":6.78,"sell_price":4.87,"cost":5695.2,"gross":-1604.4,"tax":-401.1,"net":-1203.3,"pct":-28.17,"month":"2025-10","hold_days":15,"notes":""},{"id":51,"symbol":"RR","buy_date":"15/10/2025","sell_date":"30/10/2025","qty":1660,"buy_price":6.78,"sell_price":4.23,"cost":11254.8,"gross":-4233,"tax":-1058.25,"net":-3174.75,"pct":-37.61,"month":"2025-10","hold_days":15,"notes":""},{"id":52,"symbol":"RR","buy_date":"22/10/2025","sell_date":"30/10/2025","qty":680,"buy_price":5.05,"sell_price":4.23,"cost":3434,"gross":-557.6,"tax":-139.4,"net":-418.2,"pct":-16.24,"month":"2025-10","hold_days":8,"notes":""},{"id":53,"symbol":"BULL","buy_date":"10/10/2025","sell_date":"30/10/2025","qty":800,"buy_price":12.89,"sell_price":9.92,"cost":10312,"gross":-2376,"tax":-594,"net":-1782,"pct":-23.04,"month":"2025-10","hold_days":20,"notes":""},{"id":54,"symbol":"ONDS","buy_date":"01/11/2025","sell_date":"17/11/2025","qty":2290,"buy_price":6.39,"sell_price":7.78,"cost":14633.1,"gross":3183.1,"tax":795.78,"net":2387.32,"pct":21.75,"month":"2025-11","hold_days":16,"notes":""},{"id":55,"symbol":"ONDS","buy_date":"20/11/2025","sell_date":"24/11/2025","qty":2200,"buy_price":6.44,"sell_price":8.5,"cost":14168,"gross":4532,"tax":1133,"net":3399,"pct":31.99,"month":"2025-11","hold_days":4,"notes":""},{"id":56,"symbol":"ONDS","buy_date":"01/12/2025","sell_date":"08/12/2025","qty":1480,"buy_price":6.47,"sell_price":9.55,"cost":9575.6,"gross":4558.4,"tax":1139.6,"net":3418.8,"pct":47.6,"month":"2025-12","hold_days":7,"notes":""},{"id":57,"symbol":"ONDS","buy_date":"16/12/2025","sell_date":"22/12/2025","qty":1500,"buy_price":7.12,"sell_price":9.5,"cost":10680,"gross":3570,"tax":892.5,"net":2677.5,"pct":33.43,"month":"2025-12","hold_days":6,"notes":""},{"id":58,"symbol":"ONDS","buy_date":"16/12/2025","sell_date":"23/12/2025","qty":750,"buy_price":7.12,"sell_price":9.12,"cost":5340,"gross":1500,"tax":375,"net":1125,"pct":28.09,"month":"2025-12","hold_days":7,"notes":""},{"id":59,"symbol":"ONDS","buy_date":"16/12/2025","sell_date":"24/12/2025","qty":750,"buy_price":7.12,"sell_price":9,"cost":5340,"gross":1410,"tax":352.5,"net":1057.5,"pct":26.4,"month":"2025-12","hold_days":8,"notes":""},{"id":60,"symbol":"OKLO","buy_date":"18/12/2025","sell_date":"31/12/2025","qty":180,"buy_price":85,"sell_price":71.76,"cost":15300,"gross":-2383.2,"tax":-595.8,"net":-1787.4,"pct":-15.58,"month":"2025-12","hold_days":13,"notes":""},{"id":61,"symbol":"OKLO","buy_date":"18/12/2025","sell_date":"31/12/2025","qty":50,"buy_price":77.8,"sell_price":71.76,"cost":3890,"gross":-302,"tax":-75.5,"net":-226.5,"pct":-7.76,"month":"2025-12","hold_days":13,"notes":""},{"id":62,"symbol":"OKLO","buy_date":"02/01/2026","sell_date":"07/01/2026","qty":105,"buy_price":71.73,"sell_price":90,"cost":7531.65,"gross":1918.35,"tax":479.59,"net":1438.76,"pct":25.47,"month":"2026-01","hold_days":5,"notes":""},{"id":63,"symbol":"OKLO","buy_date":"02/01/2026","sell_date":"07/01/2026","qty":105,"buy_price":71.73,"sell_price":90,"cost":7531.65,"gross":1918.35,"tax":479.59,"net":1438.76,"pct":25.47,"month":"2026-01","hold_days":5,"notes":""},{"id":64,"symbol":"ONDS","buy_date":"08/01/2026","sell_date":"08/01/2026","qty":1800,"buy_price":13.98,"sell_price":14.5,"cost":25164,"gross":936,"tax":234,"net":702,"pct":3.72,"month":"2026-01","hold_days":0,"notes":""},{"id":65,"symbol":"ONDS","buy_date":"22/01/2026","sell_date":"23/01/2026","qty":800,"buy_price":13,"sell_price":13,"cost":10400,"gross":0,"tax":0,"net":0,"pct":0,"month":"2026-01","hold_days":1,"notes":""},{"id":66,"symbol":"QBTS","buy_date":"02/01/2026","sell_date":"23/01/2026","qty":555,"buy_price":26.83,"sell_price":27.28,"cost":14890.65,"gross":249.75,"tax":62.44,"net":187.31,"pct":1.68,"month":"2026-01","hold_days":21,"notes":""},{"id":67,"symbol":"OKLO","buy_date":"22/01/2026","sell_date":"23/01/2026","qty":100,"buy_price":94.54,"sell_price":91.39,"cost":9454,"gross":-315,"tax":-78.75,"net":-236.25,"pct":-3.33,"month":"2026-01","hold_days":1,"notes":""},{"id":68,"symbol":"QBTX","buy_date":"26/01/2026","sell_date":"27/01/2026","qty":800,"buy_price":26.64,"sell_price":28,"cost":21312,"gross":1088,"tax":272,"net":816,"pct":5.11,"month":"2026-01","hold_days":1,"notes":""},{"id":69,"symbol":"QBTX","buy_date":"26/01/2026","sell_date":"27/01/2026","qty":800,"buy_price":24,"sell_price":24.59,"cost":19200,"gross":472,"tax":118,"net":354,"pct":2.46,"month":"2026-01","hold_days":1,"notes":""},{"id":70,"symbol":"QBTX","buy_date":"26/01/2026","sell_date":"27/01/2026","qty":500,"buy_price":23.02,"sell_price":24.59,"cost":11510,"gross":785,"tax":196.25,"net":588.75,"pct":6.82,"month":"2026-01","hold_days":1,"notes":""},{"id":71,"symbol":"ONDL","buy_date":"02/02/2026","sell_date":"03/02/2026","qty":555,"buy_price":27.75,"sell_price":29.75,"cost":15401.25,"gross":1110,"tax":277.5,"net":832.5,"pct":7.21,"month":"2026-02","hold_days":1,"notes":""},{"id":72,"symbol":"QBTX","buy_date":"02/02/2026","sell_date":"04/02/2026","qty":800,"buy_price":19.87,"sell_price":20.4,"cost":15896,"gross":424,"tax":106,"net":318,"pct":2.67,"month":"2026-02","hold_days":2,"notes":""},{"id":73,"symbol":"QBTX","buy_date":"04/02/2026","sell_date":"04/02/2026","qty":500,"buy_price":19,"sell_price":20.4,"cost":9500,"gross":700,"tax":175,"net":525,"pct":7.37,"month":"2026-02","hold_days":0,"notes":""},{"id":74,"symbol":"ONDL","buy_date":"03/02/2026","sell_date":"18/02/2026","qty":500,"buy_price":21,"sell_price":26,"cost":10500,"gross":2500,"tax":625,"net":1875,"pct":23.81,"month":"2026-02","hold_days":15,"notes":""},{"id":75,"symbol":"ONDL","buy_date":"03/02/2026","sell_date":"18/02/2026","qty":500,"buy_price":21,"sell_price":26,"cost":10500,"gross":2500,"tax":625,"net":1875,"pct":23.81,"month":"2026-02","hold_days":15,"notes":""},{"id":76,"symbol":"ONDL","buy_date":"03/02/2026","sell_date":"18/02/2026","qty":555,"buy_price":28,"sell_price":26,"cost":15540,"gross":-1110,"tax":-277.5,"net":-832.5,"pct":-7.14,"month":"2026-02","hold_days":15,"notes":""},{"id":77,"symbol":"ONDL","buy_date":"03/02/2026","sell_date":"19/02/2026","qty":555,"buy_price":26,"sell_price":27.85,"cost":14430,"gross":1026.75,"tax":256.69,"net":770.06,"pct":7.12,"month":"2026-02","hold_days":16,"notes":""},{"id":78,"symbol":"ONDL","buy_date":"24/02/2026","sell_date":"25/02/2026","qty":1200,"buy_price":23.5,"sell_price":24,"cost":28200,"gross":600,"tax":150,"net":450,"pct":2.13,"month":"2026-02","hold_days":1,"notes":""},{"id":79,"symbol":"ONDL","buy_date":"24/02/2026","sell_date":"25/02/2026","qty":300,"buy_price":23.5,"sell_price":22.19,"cost":7050,"gross":-393,"tax":-98.25,"net":-294.75,"pct":-5.57,"month":"2026-02","hold_days":1,"notes":""},{"id":80,"symbol":"ONDL","buy_date":"24/02/2026","sell_date":"25/02/2026","qty":1200,"buy_price":23,"sell_price":22.19,"cost":27600,"gross":-972,"tax":-243,"net":-729,"pct":-3.52,"month":"2026-02","hold_days":1,"notes":""},{"id":81,"symbol":"ONDL","buy_date":"04/03/2026","sell_date":"16/03/2026","qty":540,"buy_price":23.86,"sell_price":22.5,"cost":12884.4,"gross":-734.4,"tax":-183.6,"net":-550.8,"pct":-5.7,"month":"2026-03","hold_days":12,"notes":""},{"id":82,"symbol":"ONDL","buy_date":"04/03/2026","sell_date":"17/03/2026","qty":410,"buy_price":23.86,"sell_price":24,"cost":9782.6,"gross":57.4,"tax":14.35,"net":43.05,"pct":0.59,"month":"2026-03","hold_days":13,"notes":""},{"id":83,"symbol":"ONDL","buy_date":"04/03/2026","sell_date":"17/03/2026","qty":120,"buy_price":20.83,"sell_price":24,"cost":2499.6,"gross":380.4,"tax":95.1,"net":285.3,"pct":15.22,"month":"2026-03","hold_days":13,"notes":""},{"id":84,"symbol":"ONDL","buy_date":"09/03/2026","sell_date":"17/03/2026","qty":540,"buy_price":20,"sell_price":24,"cost":10800,"gross":2160,"tax":540,"net":1620,"pct":20,"month":"2026-03","hold_days":8,"notes":""},{"id":85,"symbol":"ONDL","buy_date":"18/03/2026","sell_date":"18/03/2026","qty":500,"buy_price":25,"sell_price":25.5,"cost":12500,"gross":250,"tax":62.5,"net":187.5,"pct":2,"month":"2026-03","hold_days":0,"notes":""},{"id":86,"symbol":"ONDL","buy_date":"18/03/2026","sell_date":"18/03/2026","qty":55,"buy_price":25.5,"sell_price":25.5,"cost":1402.5,"gross":0,"tax":0,"net":0,"pct":0,"month":"2026-03","hold_days":0,"notes":""},{"id":87,"symbol":"QBTX","buy_date":"27/02/2026","sell_date":"15/04/2026","qty":1500,"buy_price":17,"sell_price":15.33,"cost":25500,"gross":-2505,"tax":-626.25,"net":-1878.75,"pct":-9.82,"month":"2026-04","hold_days":47,"notes":""},{"id":88,"symbol":"QBTX","buy_date":"27/02/2026","sell_date":"22/04/2026","qty":500,"buy_price":17,"sell_price":16,"cost":8500,"gross":-500,"tax":-125,"net":-375,"pct":-5.88,"month":"2026-04","hold_days":54,"notes":""},{"id":89,"symbol":"QBTX","buy_date":"05/03/2026","sell_date":"22/04/2026","qty":250,"buy_price":12,"sell_price":16,"cost":3000,"gross":1000,"tax":250,"net":750,"pct":33.33,"month":"2026-04","hold_days":48,"notes":""},{"id":90,"symbol":"QBTX","buy_date":"05/03/2026","sell_date":"04/05/2026","qty":750,"buy_price":12,"sell_price":15.01,"cost":9000,"gross":2257.5,"tax":564.38,"net":1693.12,"pct":25.08,"month":"2026-05","hold_days":60,"notes":""},{"id":91,"symbol":"QBTX","buy_date":"01/05/2026","sell_date":"04/05/2026","qty":1,"buy_price":12.51,"sell_price":15.01,"cost":12.51,"gross":2.5,"tax":0.63,"net":1.87,"pct":19.98,"month":"2026-05","hold_days":3,"notes":""},{"id":92,"symbol":"ONDL","buy_date":"18/03/2026","sell_date":"04/05/2026","qty":500,"buy_price":25.5,"sell_price":16.5,"cost":12750,"gross":-4500,"tax":-1125,"net":-3375,"pct":-35.29,"month":"2026-05","hold_days":47,"notes":""},{"id":93,"symbol":"ONDL","buy_date":"18/03/2026","sell_date":"04/05/2026","qty":500,"buy_price":24,"sell_price":16.5,"cost":12000,"gross":-3750,"tax":-937.5,"net":-2812.5,"pct":-31.25,"month":"2026-05","hold_days":47,"notes":""},{"id":94,"symbol":"ONDL","buy_date":"18/03/2026","sell_date":"14/05/2026","qty":500,"buy_price":24,"sell_price":17.5,"cost":12000,"gross":-3250,"tax":-812.5,"net":-2437.5,"pct":-27.08,"month":"2026-05","hold_days":57,"notes":""},{"id":95,"symbol":"ONDL","buy_date":"29/04/2026","sell_date":"14/05/2026","qty":1500,"buy_price":15.5,"sell_price":17.5,"cost":23250,"gross":3000,"tax":750,"net":2250,"pct":12.9,"month":"2026-05","hold_days":15,"notes":""},{"id":96,"symbol":"ONDL","buy_date":"07/05/2026","sell_date":"14/05/2026","qty":1000,"buy_price":13.5,"sell_price":17.5,"cost":13500,"gross":4000,"tax":1000,"net":3000,"pct":29.63,"month":"2026-05","hold_days":7,"notes":""},{"id":97,"symbol":"ONDL","buy_date":"12/05/2026","sell_date":"14/05/2026","qty":900,"buy_price":13.5,"sell_price":17.5,"cost":12150,"gross":3600,"tax":900,"net":2700,"pct":29.63,"month":"2026-05","hold_days":2,"notes":""},{"id":98,"symbol":"ONDL","buy_date":"21/05/2026","sell_date":"27/05/2026","qty":1500,"buy_price":13.48,"sell_price":16,"cost":20220,"gross":3780,"tax":945,"net":2835,"pct":18.69,"month":"2026-05","hold_days":6,"notes":""},{"id":99,"symbol":"RCAX","buy_date":"05/05/2026","sell_date":"28/05/2026","qty":2000,"buy_price":7.5,"sell_price":11,"cost":15000,"gross":7000,"tax":1750,"net":5250,"pct":46.67,"month":"2026-05","hold_days":23,"notes":""},{"id":100,"symbol":"RCAX","buy_date":"14/05/2026","sell_date":"28/05/2026","qty":2500,"buy_price":6.5,"sell_price":11,"cost":16250,"gross":11250,"tax":2812.5,"net":8437.5,"pct":69.23,"month":"2026-05","hold_days":14,"notes":""},{"id":101,"symbol":"RCAX","buy_date":"14/05/2026","sell_date":"28/05/2026","qty":1500,"buy_price":6.5,"sell_price":11,"cost":9750,"gross":6750,"tax":1687.5,"net":5062.5,"pct":69.23,"month":"2026-05","hold_days":14,"notes":""},{"id":102,"symbol":"RCAX","buy_date":"19/05/2026","sell_date":"28/05/2026","qty":2000,"buy_price":5.5,"sell_price":11,"cost":11000,"gross":11000,"tax":2750,"net":8250,"pct":100,"month":"2026-05","hold_days":9,"notes":""},{"id":103,"symbol":"QBTZ","buy_date":"02/06/2026","sell_date":"02/06/2026","qty":10000,"buy_price":3.09,"sell_price":3.35,"cost":30900,"gross":2600,"tax":650,"net":1950,"pct":8.41,"month":"2026-06","hold_days":0,"notes":""},{"id":104,"symbol":"QBTZ","buy_date":"02/06/2026","sell_date":"03/06/2026","qty":5000,"buy_price":3.4,"sell_price":3.8,"cost":17000,"gross":2000,"tax":500,"net":1500,"pct":11.76,"month":"2026-06","hold_days":1,"notes":""},{"id":105,"symbol":"QBTZ","buy_date":"02/06/2026","sell_date":"03/06/2026","qty":5000,"buy_price":3.3,"sell_price":3.8,"cost":16500,"gross":2500,"tax":625,"net":1875,"pct":15.15,"month":"2026-06","hold_days":1,"notes":""},{"id":106,"symbol":"RCAX","buy_date":"04/06/2026","sell_date":"04/06/2026","qty":2500,"buy_price":12.25,"sell_price":12.39,"cost":30625,"gross":350,"tax":87.5,"net":262.5,"pct":1.14,"month":"2026-06","hold_days":0,"notes":""},{"id":107,"symbol":"QBTZ","buy_date":"04/06/2026","sell_date":"04/06/2026","qty":5555,"buy_price":3.5,"sell_price":3.79,"cost":19442.5,"gross":1610.95,"tax":402.74,"net":1208.21,"pct":8.29,"month":"2026-06","hold_days":0,"notes":""},{"id":108,"symbol":"OKLL","buy_date":"11/06/2026","sell_date":"11/06/2026","qty":4800,"buy_price":5.7,"sell_price":6,"cost":27360,"gross":1440,"tax":360,"net":1080,"pct":5.26,"month":"2026-06","hold_days":0,"notes":""}];
+
+
+let trades = [], positions = [], editId = null, posEditId = null, journalId = null;
+let noteId = null, sortCol = 'sell_date', sortDir = -1;
+let monthGoal = 5000, charts = {}, darkMode = false;
+let liveData = {}; // cache for live prices
+
+// ── Dark Mode ───────────────────────────────────────────────
+function toggleDark() {
+  darkMode = !darkMode;
+  document.body.classList.toggle('dark', darkMode);
+  document.getElementById('dark-btn').textContent = darkMode ? '☀️ Light' : '🌙 Dark';
+  try { localStorage.setItem('fifo_dark', darkMode ? '1' : '0'); } catch {}
+}
+
+// ── סטטוס ──────────────────────────────────────────────────
+function setStatus(msg, type) {
+  const bar = document.getElementById('sync-bar');
+  if (!bar) return;
+  bar.textContent = msg;
+  bar.style.background = type==='error'?'#fff0f0':type==='ok'?'#f0faf6':'#fffbe6';
+  bar.style.color = type==='error'?'#c00':type==='ok'?'#0f7a5c':'#a07000';
+  bar.style.display = msg ? 'block' : 'none';
+}
+function showLoading(show) {
+  const btn = document.getElementById('add-btn');
+  if (btn) btn.disabled = show;
+  document.getElementById('sync-spinner').style.display = show ? 'inline' : 'none';
+}
+function isApiConfigured() { return API_URL && API_URL !== 'PLACEHOLDER'; }
+
+// ── נרמול ───────────────────────────────────────────────────
+function normalizeTrade(t) {
+  ['buy_date','sell_date'].forEach(key => {
+    const v = t[key]; if (!v) return;
+    const s = String(v).trim();
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return;
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) t[key] = String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+  });
+  if (t.sell_date && /^\d{2}\/\d{2}\/\d{4}$/.test(t.sell_date)) {
+    const [d,m,y] = t.sell_date.split('/');
+    t.month = y+'-'+m.padStart(2,'0');
+  }
+  ['id','qty','buy_price','sell_price','cost','gross','tax','net','pct','hold_days'].forEach(k => {
+    if (t[k]!==undefined && t[k]!=='') t[k] = parseFloat(t[k])||0;
+  });
+  return t;
+}
+
+// ── Banner ──────────────────────────────────────────────────
+function updateBanner() {
+  const b = document.getElementById('seed-banner');
+  if (!b) return;
+  b.style.display = (trades.length===0 && isApiConfigured()) ? 'flex' : 'none';
+}
+
+// ── Load ────────────────────────────────────────────────────
+async function load() {
+  if (!isApiConfigured()) {
+    setStatus('⚠️ API URL לא מוגדר', 'warn');
+    trades = JSON.parse(JSON.stringify(SEED));
+    updateBanner(); return;
+  }
+  if (!navigator.onLine) { setStatus('❌ אין חיבור לאינטרנט', 'error'); trades = []; return; }
+  showLoading(true); setStatus('טוען נתונים...', 'info');
+  try {
+    const [tr, gr, pr, wl] = await Promise.all([
+      fetch(API_URL+'?action=getTrades&t='+Date.now()).then(r=>r.json()),
+      fetch(API_URL+'?action=getGoal&t='+Date.now()).then(r=>r.json()),
+      fetch(API_URL+'?action=getPositions&t='+Date.now()).then(r=>r.json()),
+      fetch(API_URL+'?action=getWatchlist&t='+Date.now()).then(r=>r.json()).catch(err => ({ ok:false, error: err.message }))
+    ]);
+    if (!tr.ok) throw new Error(tr.error||'שגיאה בטעינת עסקאות');
+    trades = (tr.trades||[]).map(normalizeTrade);
+    if (gr.ok) monthGoal = gr.goal||5000;
+    if (pr.ok) {
+      positions = (pr.positions||[]).map(p => {
+        ['id','qty','avg_price','target','stop_loss'].forEach(k=>{ if(p[k]!==''&&p[k]!==undefined) p[k]=parseFloat(p[k])||0; });
+        return p;
+      });
+      if (positions.length) savePositionsLocal();
+      else {
+        const localPositions = loadPositionsLocal();
+        if (localPositions.length) positions = localPositions;
+      }
+    } else {
+      positions = loadPositionsLocal();
+    }
+
+    // Watchlist חייב להגיע מה־Google Sheet כדי שכל מכשיר יראה את אותם נתונים
+    if (wl && wl.ok) {
+      watchlist = normalizeWatchlistRows(wl.watchlist || []);
+      saveWatchlist(); // גיבוי בלבד, לא מקור האמת
+    } else {
+      console.warn('getWatchlist failed, using local backup:', wl && wl.error);
+      loadWatchlist();
+    }
+
+    updateBanner();
+    setStatus('✓ עודכן: '+new Date().toLocaleTimeString('he-IL'), 'ok');
+    setTimeout(()=>setStatus('',''),3000);
+  } catch(err) {
+    setStatus('❌ '+err.message, 'error'); trades = []; positions = loadPositionsLocal();
+  } finally { showLoading(false); }
+}
+
+async function apiPost(body) {
+  if (!isApiConfigured()) { setStatus('⚠️ API לא מוגדר', 'warn'); return {ok:false}; }
+  if (!navigator.onLine) { setStatus('❌ אין חיבור', 'error'); return {ok:false}; }
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'text/plain' },
+      redirect: 'follow'
+    });
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      console.error('apiPost parse error:', text.slice(0, 200));
+      return { ok: false, error: 'Invalid JSON response' };
+    }
+  } catch(err) {
+    console.error('apiPost error:', err.message, 'action:', body.action);
+    setStatus('❌ שגיאת רשת: ' + err.message, 'error');
+    return { ok: false, error: err.message };
+  }
+}
+
+// ── Live Prices — Polygon.io REST API ──────────────────────
+const POLYGON_KEY = '5x05brX2hSWxLFhO7DAm6UF9EKqvo32o';
+let polygonWs = null;
+let wsConnected = false;
+let wsRetryTimer = null;
+
+// ── WebSocket Connection (Starter plan+) ────────────────────
+function connectPolygonWS() {
+  if (positions.length === 0) return;
+  if (polygonWs && polygonWs.readyState === WebSocket.OPEN) return;
+
+  try {
+    polygonWs = new WebSocket('wss://socket.polygon.io/stocks');
+
+    polygonWs.onopen = () => {
+      polygonWs.send(JSON.stringify({ action: 'auth', params: POLYGON_KEY }));
+    };
+
+    polygonWs.onmessage = (e) => {
+      const msgs = JSON.parse(e.data);
+      msgs.forEach(msg => {
+        if (msg.ev === 'status' && msg.status === 'auth_success') {
+          wsConnected = true;
+          updateWsIndicator(true);
+          // subscribe לכל הסימבולים
+          const syms = [...new Set(positions.map(p => p.symbol))].join(',');
+          polygonWs.send(JSON.stringify({ action: 'subscribe', params: `T.${syms.split(',').join(',T.')}` }));
+        }
+        if (msg.ev === 'status' && msg.status === 'auth_failed') {
+          wsConnected = false;
+          updateWsIndicator(false);
+          // fallback ל-REST
+          startPollingFallback();
+        }
+        // עדכון מחיר מ-Trade event
+        if (msg.ev === 'T' && msg.sym) {
+          liveData[msg.sym] = liveData[msg.sym] || {};
+          liveData[msg.sym].price = msg.p;
+          liveData[msg.sym].updated = new Date().toLocaleTimeString('he-IL');
+          if (!liveData[msg.sym].prevClose) {
+            // טען prevClose בפעם הראשונה
+            fetchPrevClose(msg.sym);
+          }
+          renderPositions();
+          checkPositionAlerts();
+        }
+      });
+    };
+
+    polygonWs.onclose = () => {
+      wsConnected = false;
+      updateWsIndicator(false);
+      // נסה להתחבר מחדש אחרי 5 שניות
+      wsRetryTimer = setTimeout(connectPolygonWS, 5000);
+    };
+
+    polygonWs.onerror = () => {
+      wsConnected = false;
+      startPollingFallback();
+    };
+  } catch {
+    startPollingFallback();
+  }
+}
+
+function disconnectPolygonWS() {
+  if (wsRetryTimer) { clearTimeout(wsRetryTimer); wsRetryTimer = null; }
+  if (polygonWs) { polygonWs.close(); polygonWs = null; }
+  wsConnected = false;
+  updateWsIndicator(false);
+}
+
+function updateWsIndicator(connected) {
+  const dot = document.getElementById('ws-dot');
+  const label = document.getElementById('ws-label');
+  if (!dot || !label) return;
+  dot.style.background = connected ? '#16a37f' : '#aaa';
+  dot.style.animation = connected ? 'pulse 1.5s infinite' : 'none';
+  label.textContent = connected ? 'Live' : 'Polling';
+}
+
+// ── REST fallback (polling) ─────────────────────────────────
+let pollingInterval = null;
+
+function startPollingFallback() {
+  if (pollingInterval) return;
+  pollingInterval = setInterval(() => {
+    if (positions.length > 0) refreshPrices();
+  }, 15000); // כל 15 שניות
+}
+
+function stopPollingFallback() {
+  if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+}
+
+async function fetchPrevClose(symbol) {
+  try {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (yesterday.getDay() === 0) yesterday.setDate(yesterday.getDate() - 2);
+    if (yesterday.getDay() === 6) yesterday.setDate(yesterday.getDate() - 1);
+    const d = yesterday.toISOString().split('T')[0];
+    const res = await fetch(`https://api.polygon.io/v1/open-close/${symbol}/${d}?adjusted=true&apiKey=${POLYGON_KEY}`);
+    const data = await res.json();
+    if (data.close && liveData[symbol]) {
+      liveData[symbol].prevClose = data.close;
+      renderPositions();
+    }
+  } catch {}
+}
+
+// ── Live Prices — Yahoo Finance (primary) + Polygon EOD ────
+// ── Live Prices — דרך Apps Script proxy (ללא CORS) ─────────
+async function fetchLivePrice(symbol) {
+  // שלח בקשה דרך Apps Script שמטפל ב-CORS
+  try {
+    const res = await fetch(
+      `${API_URL}?action=getPrices&symbols=${symbol}&t=${Date.now()}`,
+      { signal: AbortSignal.timeout(12000) }
+    );
+    const data = await res.json();
+    if (data.ok && data.prices && data.prices[symbol] && data.prices[symbol].ok) {
+      const p = data.prices[symbol];
+      return {
+        price: p.price,
+        prevClose: p.prevClose,
+        preMarket: p.preMarket,
+        postMarket: p.postMarket,
+        change: p.change,
+        changePct: p.changePct,
+        volume: p.volume,
+        updated: new Date().toLocaleTimeString('he-IL'),
+        source: 'apps-script'
+      };
+    }
+  } catch {}
+  return null;
+}
+
+// טעינת מחירים מרובים בבת אחת (יעיל יותר)
+async function fetchAllPrices(symbols) {
+  if (!symbols.length) return {};
+  try {
+    const res = await fetch(
+      `${API_URL}?action=getPrices&symbols=${symbols.join(',')}&t=${Date.now()}`,
+      { signal: AbortSignal.timeout(15000) }
+    );
+    const data = await res.json();
+    if (data.ok && data.prices) return data.prices;
+  } catch {}
+  return {};
+}
+
+// alias לתאימות
+const fetchLivePriceYahoo = fetchLivePrice;
+const fetchYahooV11 = fetchLivePrice;
+const fetchYahooProxy = fetchLivePrice;
+
+async function refreshPrices() {
+  if (positions.length === 0) return;
+  setStatus('מרענן מחירים...', 'info');
+  const syms = [...new Set(positions.map(p => p.symbol))];
+  const prices = await fetchAllPrices(syms);
+  Object.entries(prices).forEach(([sym, p]) => {
+    if (p && p.ok) liveData[sym] = { ...(liveData[sym]||{}), ...p, updated: new Date().toLocaleTimeString('he-IL') };
+  });
+  renderPositions();
+  const anyLoaded = Object.values(liveData).some(d => d.price > 0);
+  setStatus(anyLoaded ? '✓ מחירים עודכנו' : '⚠️ לא ניתן לטעון מחירים', anyLoaded ? 'ok' : 'warn');
+  setTimeout(()=>setStatus('',''),3000);
+  checkPositionAlerts();
+}
+
+// ── Render All ──────────────────────────────────────────────
+function renderAll() {
+  const st = calcStats();
+  renderKPIs(st); renderCharts(st); renderGoalCard(st);
+  renderDrawdownChart(st); renderWeeklySummary();
+  renderTrades(); renderJournal();
+  renderAnalysis(st); renderHeatmap();
+  renderGoalsTab(st); renderPositions();
+  updateFilters();
+}
+
+const f$ = v=>(v<0?'-$':'$')+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+const fILS = v=>(v<0?'-₪':'₪')+Math.abs(v).toLocaleString('he-IL',{minimumFractionDigits:0,maximumFractionDigits:0});
+function currentMonthKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function rateForMonth(month){ return MONTHLY_USD_ILS[month] || DEFAULT_USD_ILS; }
+const usdToIls = (v, month=currentMonthKey()) => (Number(v)||0) * rateForMonth(month);
+const tradesNetIls = (arr=trades) => arr.reduce((sum,t)=>sum + usdToIls(t.net, t.month), 0);
+const savePositionsLocal = () => { try { localStorage.setItem('fifo_positions_backup', JSON.stringify(positions)); } catch {} };
+const loadPositionsLocal = () => { try { return JSON.parse(localStorage.getItem('fifo_positions_backup')||'[]'); } catch { return []; } };
+const fpct = v=>(v>=0?'+':'')+v.toFixed(1)+'%';
+const fnum = v=>Math.round(v).toLocaleString();
+
+function parseDD(s) { if(!s) return new Date(0); const[d,m,y]=s.split('/'); return new Date(+y,+m-1,+d); }
+function monthLabel(m) { const[y,mo]=m.split('-'); const n=['ינו','פבר','מרץ','אפר','מאי','יוני','יול','אוג','ספט','אוק','נוב','דצמ']; return n[+mo-1]+"'"+y.slice(2); }
+
+// ── Stats ───────────────────────────────────────────────────
+function calcStats() {
+  const wins=trades.filter(t=>t.net>0), losses=trades.filter(t=>t.net<0);
+  const totalNet=trades.reduce((s,t)=>s+t.net,0);
+  const totalNetIls=tradesNetIls(trades);
+  const gp=wins.reduce((s,t)=>s+t.gross,0), gl=Math.abs(losses.reduce((s,t)=>s+t.gross,0));
+  const byMonth={};
+  trades.forEach(t=>{if(!byMonth[t.month])byMonth[t.month]={net:0,trades:0,wins:0};byMonth[t.month].net+=t.net;byMonth[t.month].trades++;if(t.net>0)byMonth[t.month].wins++;});
+  const monthArr=Object.entries(byMonth).sort((a,b)=>a[0].localeCompare(b[0])).map(([m,v])=>({month:m,label:monthLabel(m),net:Math.round(v.net),trades:v.trades,wins:v.wins}));
+  let cum=0; const equity=monthArr.map(m=>({label:m.label,cum:Math.round(cum+=m.net)}));
+  const now=new Date(), curMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const bySym={};
+  trades.forEach(t=>{if(!bySym[t.symbol])bySym[t.symbol]={net:0,trades:0,wins:0};bySym[t.symbol].net+=t.net;bySym[t.symbol].trades++;if(t.net>0)bySym[t.symbol].wins++;});
+  const symArr=Object.entries(bySym).map(([s,v])=>({symbol:s,net:Math.round(v.net),trades:v.trades,winRate:Math.round(v.wins/v.trades*100)})).sort((a,b)=>b.net-a.net);
+
+  // Advanced stats
+  const sorted = [...trades].sort((a,b)=>parseDD(a.sell_date)-parseDD(b.sell_date));
+  let maxWS=0,curWS=0,maxLS=0,curLS=0;
+  sorted.forEach(t=>{ if(t.net>0){curWS++;maxWS=Math.max(maxWS,curWS);curLS=0;}else if(t.net<0){curLS++;maxLS=Math.max(maxLS,curLS);curWS=0;} });
+  const largestWin=trades.reduce((m,t)=>t.net>m?t.net:m, 0);
+  const largestLoss=trades.reduce((m,t)=>t.net<m?t.net:m, 0);
+  const expectancy = wins.length && losses.length ? (wins.length/trades.length*Math.abs(wins.reduce((s,t)=>s+t.net,0)/wins.length)) - (losses.length/trades.length*Math.abs(losses.reduce((s,t)=>s+t.net,0)/losses.length)) : 0;
+  const avgHold = trades.length ? trades.reduce((s,t)=>s+(t.hold_days||0),0)/trades.length : 0;
+
+  // By day of week
+  const byDow={};
+  trades.forEach(t=>{ if(!t.sell_date) return; const d=parseDD(t.sell_date); const dow=d.getDay(); if(!byDow[dow])byDow[dow]={net:0,c:0}; byDow[dow].net+=t.net; byDow[dow].c++; });
+
+  // By hold duration bucket
+  const holdBuckets={'0 ימים':0,'1-3 ימים':0,'4-7 ימים':0,'8-14 ימים':0,'15-30 ימים':0,'30+ ימים':0};
+  trades.forEach(t=>{ const d=t.hold_days||0; if(d===0)holdBuckets['0 ימים']+=t.net; else if(d<=3)holdBuckets['1-3 ימים']+=t.net; else if(d<=7)holdBuckets['4-7 ימים']+=t.net; else if(d<=14)holdBuckets['8-14 ימים']+=t.net; else if(d<=30)holdBuckets['15-30 ימים']+=t.net; else holdBuckets['30+ ימים']+=t.net; });
+
+  // By position size bucket
+  const sizeBuckets={'<$5k':0,'$5k-15k':0,'$15k-30k':0,'$30k+':0};
+  trades.forEach(t=>{ const c=t.cost||0; if(c<5000)sizeBuckets['<$5k']+=t.net; else if(c<15000)sizeBuckets['$5k-15k']+=t.net; else if(c<30000)sizeBuckets['$15k-30k']+=t.net; else sizeBuckets['$30k+']+=t.net; });
+
+  // Daily PnL for heatmap
+  const byDate={};
+  trades.forEach(t=>{ if(!t.sell_date) return; const[d,m,y]=t.sell_date.split('/'); const k=`${y}-${m}-${d}`; if(!byDate[k])byDate[k]=0; byDate[k]+=t.net; });
+
+  return { totalNet,totalNetIls,wins:wins.length,losses:losses.length,total:trades.length,
+    winRate:trades.length?Math.round(wins.length/trades.length*100):0,
+    pf:gl>0?+(gp/gl).toFixed(2):999,
+    avgWin:wins.length?wins.reduce((s,t)=>s+t.net,0)/wins.length:0,
+    avgLoss:losses.length?losses.reduce((s,t)=>s+t.net,0)/losses.length:0,
+    monthArr,equity,curMonth,curMonthNet:(byMonth[curMonth]||{}).net||0,symArr,
+    largestWin,largestLoss,maxWS,maxLS,expectancy,avgHold,byDow,holdBuckets,sizeBuckets,byDate };
+}
+
+// ── KPIs ────────────────────────────────────────────────────
+function renderKPIs(st) {
+  document.getElementById('kpi-grid').innerHTML = [
+    ['רווח נטו כולל',f$(Math.round(st.totalNet)),`${st.total} עסקאות`,st.totalNet>=0?'green':'red'],
+    ['רווח נטו בש״ח',fILS(Math.round(st.totalNetIls)),'לפי שער דולר ממוצע חודשי',st.totalNetIls>=0?'green':'red'],
+    ['Win Rate',st.winRate+'%',`${st.wins}W / ${st.losses}L`,st.winRate>=60?'green':'red'],
+    ['Profit Factor',st.pf,'ברוטו רווח / הפסד',st.pf>=2?'green':st.pf>=1?'':'red'],
+    ['Expectancy',f$(Math.round(st.expectancy)),'לעסקה ממוצעת',st.expectancy>=0?'green':'red'],
+    ['Avg Win',f$(Math.round(st.avgWin)),'לעסקה רווחית','green'],
+    ['Avg Loss',f$(Math.round(st.avgLoss)),'לעסקה מפסידה','red'],
+  ].map(([l,v,s,c])=>`<div class="kpi"><div class="kpi-label">${l}</div><div class="kpi-val ${c}">${v}</div><div class="kpi-sub">${s}</div></div>`).join('');
+}
+
+// ── Charts ──────────────────────────────────────────────────
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function renderCharts(st) {
+  destroyChart('equity'); destroyChart('monthly');
+  const ts={color:'#aaa',font:{size:10}}, gs={color:'rgba(0,0,0,0.05)'};
+  const tt={callbacks:{label:c=>f$(c.raw)},bodyColor:'#333',titleColor:'#333',backgroundColor:'#fff',borderColor:'#eee',borderWidth:1};
+  charts['equity']=new Chart(document.getElementById('chart-equity'),{type:'line',data:{labels:st.equity.map(e=>e.label),datasets:[{data:st.equity.map(e=>e.cum),borderColor:GREEN,backgroundColor:'rgba(22,163,127,0.07)',borderWidth:2,fill:true,tension:0.3,pointRadius:2,pointBackgroundColor:GREEN}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:tt},scales:{x:{ticks:{...ts,maxRotation:45},grid:{display:false}},y:{ticks:{...ts,callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:gs}}}});
+  charts['monthly']=new Chart(document.getElementById('chart-monthly'),{type:'bar',data:{labels:st.monthArr.map(m=>m.label),datasets:[{data:st.monthArr.map(m=>m.net),backgroundColor:st.monthArr.map(m=>m.net>=0?'rgba(22,163,127,0.8)':'rgba(217,79,79,0.8)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:tt},scales:{x:{ticks:{...ts,maxRotation:45},grid:{display:false}},y:{ticks:{...ts,callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:gs}}}});
+}
+
+function renderGoalCard(st) {
+  const pct=Math.min(100,Math.round(st.curMonthNet/monthGoal*100));
+  const curMonthIls=Math.round(usdToIls(st.curMonthNet, st.curMonth));
+  document.getElementById('goal-card').innerHTML=`<div class="card-title">יעד חודש נוכחי</div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span class="${st.curMonthNet>=0?'green':'red'}" style="font-weight:600">${f$(Math.round(st.curMonthNet))} <span style="font-size:11px;font-weight:400">${fILS(curMonthIls)}</span></span><span style="color:#aaa">${f$(monthGoal)}</span></div><div class="goal-bar-bg"><div class="goal-bar-fill" style="width:${pct}%;background:${pct>=100?GREEN:BLUE}"></div></div><div style="font-size:12px;color:#aaa;margin-top:4px">${pct}% ${pct>=100?'🎯 יעד הושג!':'— נותר '+f$(Math.round(monthGoal-st.curMonthNet))}</div>`;
+}
+
+// ── Positions ───────────────────────────────────────────────
+function renderPositions() {
+  const grid = document.getElementById('pos-grid');
+  const tbody = document.getElementById('pos-tbody');
+  if (!grid || !tbody) return;
+
+  const summary = document.getElementById('pos-summary');
+  if (positions.length === 0) {
+    grid.innerHTML = '<div style="color:#aaa;font-size:13px;grid-column:1/-1">אין פוזיציות פתוחות. לחץ "+ פוזיציה חדשה" להוספה.</div>';
+    tbody.innerHTML = '';
+    if (summary) summary.style.display = 'none';
+    return;
+  }
+  // חשב סיכום
+  let totalCost=0, totalVal=0, totalPnl=0, liveCount=0;
+  positions.forEach(p=>{
+    const live=liveData[p.symbol], price=live?live.price:null;
+    totalCost += p.avg_price * p.qty;
+    if(price){totalVal+=price*p.qty; totalPnl+=(price-p.avg_price)*p.qty; liveCount++;}
+    else totalVal += p.avg_price * p.qty;
+  });
+  if(summary){
+    summary.style.display='flex';
+    summary.innerHTML=`
+      <div><div style="font-size:11px;color:#888;margin-bottom:3px">עלות כוללת</div><div style="font-weight:600">${f$(Math.round(totalCost))}</div></div>
+      <div><div style="font-size:11px;color:#888;margin-bottom:3px">שווי נוכחי</div><div style="font-weight:600">${f$(Math.round(totalVal))}</div></div>
+      <div><div style="font-size:11px;color:#888;margin-bottom:3px">P&L פתוח</div><div style="font-weight:600;color:${totalPnl>=0?'#16a37f':'#d94f4f'}">${f$(Math.round(totalPnl))} ${liveCount?'('+liveCount+'/'+positions.length+' live)':''}</div></div>
+      <div><div style="font-size:11px;color:#888;margin-bottom:3px">P&L %</div><div style="font-weight:600;color:${totalPnl>=0?'#16a37f':'#d94f4f'}">${totalCost?fpct(totalPnl/totalCost*100):'—'}</div></div>
+    `;
+  }
+
+  grid.innerHTML = positions.map(p => {
+    const live = liveData[p.symbol];
+    const price = live ? live.price : null;
+    const pnl = price ? (price - p.avg_price) * p.qty : null;
+    const pnlPct = price ? ((price - p.avg_price) / p.avg_price * 100) : null;
+    const val = price ? price * p.qty : p.avg_price * p.qty;
+    const dayChg = live ? ((live.price - live.prevClose)/live.prevClose*100) : null;
+    const hasTarget = p.target > 0;
+    const targetPct = hasTarget && price ? ((p.target - price)/price*100) : null;
+
+    return `<div class="pos-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="pos-card-sym">${p.symbol} ${live?'<span class="live-dot"></span>':''}</div>
+        <div style="font-size:11px;color:#aaa">${live?live.updated:'לא נטען'}</div>
+      </div>
+      <div class="pos-card-price ${pnl===null?'':(pnl>=0?'green':'red')}">${price?'$'+price.toFixed(2):'—'}</div>
+      ${dayChg!==null?`<div style="font-size:12px;${dayChg>=0?'color:#16a37f':'color:#d94f4f'}">שינוי יומי: ${dayChg>=0?'+':''}${dayChg.toFixed(2)}%</div>`:''}
+      ${live&&live.preMarket?`<div style="font-size:11px;padding:2px 6px;background:#fff8e1;border-radius:4px;display:inline-block;margin-top:2px">🌅 Pre: <b>$${live.preMarket.toFixed(2)}</b> ${live.prevClose?`(${live.preMarket>live.prevClose?'+':''}${((live.preMarket-live.prevClose)/live.prevClose*100).toFixed(2)}%)`:''}</div>`:''}
+      ${live&&live.postMarket?`<div style="font-size:11px;padding:2px 6px;background:#f0f0ff;border-radius:4px;display:inline-block;margin-top:2px">🌙 AH: <b>$${live.postMarket.toFixed(2)}</b> ${live.prevClose?`(${live.postMarket>live.prevClose?'+':''}${((live.postMarket-live.prevClose)/live.prevClose*100).toFixed(2)}%)`:''}</div>`:''}
+      <div class="pos-card-row">
+        <span>כמות: ${fnum(p.qty)}</span>
+        <span>קנייה: $${p.avg_price}</span>
+      </div>
+      ${p.added_date?`<div style="font-size:11px;color:#aaa;margin-top:2px">כניסה: ${p.added_date}</div>`:''}
+      <div class="pos-card-row" style="margin-top:6px">
+        <span class="${pnl===null?'':(pnl>=0?'green':'red')}" style="font-weight:600">P&L: ${pnl!==null?f$(Math.round(pnl))+' / '+fILS(Math.round(usdToIls(pnl, currentMonthKey()))):'—'} ${pnlPct!==null?'('+fpct(pnlPct)+')':''}</span>
+        <span style="color:#888">שווי: ${f$(Math.round(val))}</span>
+      </div>
+      ${hasTarget?`<div class="pos-card-row" style="margin-top:4px"><span style="color:#378add">יעד: $${p.target}${targetPct!==null?' ('+fpct(targetPct)+' נותר)':''}</span>${p.stop_loss?`<span style="color:#d94f4f">סטופ: $${p.stop_loss}</span>`:''}</div>`:''}
+      ${p.notes?`<div style="font-size:11px;color:#aaa;margin-top:6px">${p.notes}</div>`:''}
+      <div style="display:flex;gap:5px;margin-top:10px">
+        <button class="icon-btn" onclick="openPosEdit(${p.id})">✏️</button>
+        <button class="icon-btn del" onclick="deletePos(${p.id})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  tbody.innerHTML = positions.map(p => {
+    const live = liveData[p.symbol];
+    const price = live ? live.price : null;
+    const pnl = price ? (price - p.avg_price) * p.qty : null;
+    const pnlPct = price ? ((price - p.avg_price) / p.avg_price * 100) : null;
+    const dayChgTbl = live ? live.changePct : null;
+    const preMktTbl = live?.preMarket;
+    const postMktTbl = live?.postMarket;
+    const liveCell = price
+      ? `<div style="font-weight:600">$${price.toFixed(2)}</div>
+         ${dayChgTbl!==null?`<div style="font-size:10px;color:${dayChgTbl>=0?'#16a37f':'#d94f4f'}">${dayChgTbl>=0?'+':''}${dayChgTbl.toFixed(2)}%</div>`:''}
+         ${preMktTbl?`<div style="font-size:10px;color:#888">Pre: $${preMktTbl.toFixed(2)}</div>`:''}
+         ${postMktTbl?`<div style="font-size:10px;color:#888">AH: $${postMktTbl.toFixed(2)}</div>`:''}`
+      : '<span style="color:#aaa">—</span>';
+    return `<tr>
+      <td style="font-weight:600">${p.symbol}</td>
+      <td>${fnum(p.qty)}</td>
+      <td>$${p.avg_price}${p.added_date?`<div style="font-size:10px;color:#aaa">${p.added_date}</div>`:''}</td>
+      <td>${liveCell}</td>
+      <td class="${pnl===null?'':(pnl>=0?'green':'red')}" style="font-weight:600">${pnl!==null?f$(Math.round(pnl)):'—'}</td>
+      <td class="${pnl===null?'':(pnl>=0?'green':'red')}" style="font-weight:600">${pnl!==null?fILS(Math.round(usdToIls(pnl, currentMonthKey()))):'—'}</td>
+      <td class="${pnlPct===null?'':(pnlPct>=0?'green':'red')}">${pnlPct!==null?fpct(pnlPct):'—'}</td>
+      <td>${price?f$(Math.round(price*p.qty)):f$(Math.round(p.avg_price*p.qty))}</td>
+      <td>${p.target?'$'+p.target:''}</td>
+      <td>${p.stop_loss?'$'+p.stop_loss:''}</td>
+      <td><div class="actions">
+        <button class="icon-btn" onclick="openPosEdit(${p.id})">✏️</button>
+        <button class="icon-btn del" onclick="deletePos(${p.id})">✕</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Position form ───────────────────────────────────────────
+function openPosForm() {
+  posEditId=null;
+  document.getElementById('pos-modal-title').textContent='פוזיציה חדשה';
+  ['symbol','qty','price','target','stop','notes'].forEach(f=>document.getElementById('pf-'+f).value='');
+  // הגדר תאריך היום כברירת מחדל
+  const today = new Date();
+  document.getElementById('pf-date').value = today.toISOString().split('T')[0];
+  const rrBox = document.getElementById('rr-box');
+  if(rrBox) rrBox.style.display='none';
+  document.getElementById('modal-pos').style.display='flex';
+}
+function openPosEdit(id) {
+  posEditId=id; const p=positions.find(x=>x.id===id);
+  document.getElementById('pos-modal-title').textContent='עריכת פוזיציה';
+  document.getElementById('pf-symbol').value=p.symbol;
+  document.getElementById('pf-qty').value=p.qty;
+  document.getElementById('pf-price').value=p.avg_price;
+  document.getElementById('pf-target').value=p.target||'';
+  document.getElementById('pf-stop').value=p.stop_loss||'';
+  document.getElementById('pf-notes').value=p.notes||'';
+  // המר תאריך DD/MM/YYYY → YYYY-MM-DD לפקד date
+  if(p.added_date) {
+    const parts = String(p.added_date).split('/');
+    if(parts.length===3) document.getElementById('pf-date').value = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+    else document.getElementById('pf-date').value = p.added_date;
+  }
+  calcRR();
+  document.getElementById('modal-pos').style.display='flex';
+}
+function closePosForm() { document.getElementById('modal-pos').style.display='none'; posEditId=null; }
+
+async function submitPos() {
+  const sym=document.getElementById('pf-symbol').value.trim().toUpperCase();
+  const qty=+document.getElementById('pf-qty').value;
+  const price=+document.getElementById('pf-price').value;
+  if(!sym||!qty||!price){alert('נא למלא סימבול, כמות ומחיר קנייה');return;}
+  // המר תאריך YYYY-MM-DD → DD/MM/YYYY
+  const rawDate = document.getElementById('pf-date').value;
+  let entryDate = '';
+  if(rawDate) { const [y,m,d] = rawDate.split('-'); entryDate = `${d}/${m}/${y}`; }
+  const pos={symbol:sym,qty,avg_price:price,target:+document.getElementById('pf-target').value||0,stop_loss:+document.getElementById('pf-stop').value||0,notes:document.getElementById('pf-notes').value.trim(),added_date:entryDate};
+  const editingId = posEditId;
+  closePosForm(); setStatus('שומר פוזיציה...','info'); showLoading(true);
+  if(editingId!==null) {
+    pos.id=editingId;
+    const res=await apiPost({action:'updatePosition',position:pos});
+    positions=positions.map(p=>p.id===editingId?{...pos}:p); savePositionsLocal();
+    if(res.ok){setStatus('✓ פוזיציה עודכנה','ok');}
+    else setStatus('✓ נשמר מקומית. בדוק Deploy של Apps Script לפוזיציות','ok');
+  } else {
+    const res=await apiPost({action:'addPosition',position:pos});
+    const savedPos = res.ok && res.position ? res.position : {...pos, id: Date.now(), added_date: new Date().toLocaleDateString('en-GB')};
+    positions.push(savedPos); savePositionsLocal();
+    if(res.ok){setStatus('✓ פוזיציה נוספה','ok');}
+    else setStatus('✓ נשמר מקומית. בדוק Deploy של Apps Script לפוזיציות','ok');
+  }
+  setTimeout(()=>setStatus('',''),2500); showLoading(false);
+  renderPositions();
+  if(pos.symbol && !liveData[pos.symbol]) { const d=await fetchLivePrice(pos.symbol); if(d){liveData[pos.symbol]=d;renderPositions();} }
+}
+
+async function deletePos(id) {
+  if(!confirm('למחוק פוזיציה זו?')) return;
+  const res=await apiPost({action:'deletePosition',id});
+  positions=positions.filter(p=>p.id!==id); savePositionsLocal(); renderPositions();
+  if(res.ok) setStatus('✓ פוזיציה נמחקה','ok');
+  else setStatus('✓ נמחק מקומית. בדוק Deploy של Apps Script לפוזיציות','ok');
+}
+
+// ── Trades ──────────────────────────────────────────────────
+function updateFilters() {
+  const syms=[...new Set(trades.map(t=>t.symbol))].sort();
+  const months=[...new Set(trades.map(t=>t.month))].sort();
+  const ss=document.getElementById('filter-sym'),cur=ss.value;
+  ss.innerHTML='<option value="">כל הסימבולים</option>'+syms.map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join('');
+  const ms=document.getElementById('filter-month'),curM=ms.value;
+  ms.innerHTML='<option value="">כל החודשים</option>'+months.map(m=>`<option value="${m}" ${m===curM?'selected':''}>${monthLabel(m)}</option>`).join('');
+}
+
+function renderTrades() {
+  const q=(document.getElementById('search-input').value||'').toLowerCase();
+  const sym=document.getElementById('filter-sym').value;
+  const mon=document.getElementById('filter-month').value;
+  let r=[...trades];
+  if(sym)r=r.filter(t=>t.symbol===sym);
+  if(mon)r=r.filter(t=>t.month===mon);
+  if(q)r=r.filter(t=>t.symbol.toLowerCase().includes(q)||t.sell_date.includes(q)||t.buy_date.includes(q)||(t.notes||'').toLowerCase().includes(q));
+  r.sort((a,b)=>{let av=a[sortCol],bv=b[sortCol];if(sortCol==='sell_date'||sortCol==='buy_date'){av=parseDD(av);bv=parseDD(bv);}return av>bv?sortDir:av<bv?-sortDir:0;});
+  document.getElementById('trades-tbody').innerHTML=r.map(t=>`<tr>
+    <td style="font-weight:600">${t.symbol}</td>
+    <td style="color:#888">${t.sell_date}</td>
+    <td>${fnum(t.qty)}</td>
+    <td>$${t.buy_price}</td>
+    <td>$${t.sell_price}</td>
+    <td style="font-weight:600" class="${t.net>=0?'green':'red'}">${f$(Math.round(t.net))}</td>
+    <td style="font-weight:600" class="${t.net>=0?'green':'red'}" title="שער חודש ${rateForMonth(t.month)}">${fILS(Math.round(usdToIls(t.net, t.month)))}</td>
+    <td><span class="badge ${t.pct>=0?'badge-green':'badge-red'}">${fpct(t.pct)}</span></td>
+    <td style="color:#aaa">${t.hold_days}י'</td>
+    <td><div class="actions">
+      <button class="icon-btn ${t.notes?'green':''}" onclick="openNote(${t.id})">📝</button>
+      <button class="icon-btn ${(t.entry_reason||t.lesson)?'blue':''}" onclick="openJournal(${t.id})" title="יומן">📓</button>
+      <button class="icon-btn" onclick="openEdit(${t.id})">✏️</button>
+      <button class="icon-btn del" onclick="deleteTrade(${t.id})">✕</button>
+    </div></td>
+  </tr>`).join('');
+  document.getElementById('trades-count').textContent=`${r.length} עסקאות`;
+  ['symbol','sell_date','qty','net','pct'].forEach(c=>{const el=document.getElementById('s-'+c);if(el)el.textContent=sortCol===c?(sortDir===1?'↑':'↓'):'';});
+}
+function setSort(col){if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=-1;}renderTrades();}
+
+// ── Journal ─────────────────────────────────────────────────
+function renderJournal() {
+  const tbody = document.getElementById('journal-tbody');
+  if (!tbody) return;
+  const q=(document.getElementById('journal-search')?.value||'').toLowerCase();
+  const sym=document.getElementById('journal-filter-sym')?.value||'';
+  const plan=document.getElementById('journal-filter-plan')?.value||'';
+  // עדכן סינון סימבול
+  const jss=document.getElementById('journal-filter-sym');
+  if(jss&&jss.options.length<=1){const syms=[...new Set(trades.map(t=>t.symbol))].sort();syms.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;jss.appendChild(o);});}
+  let sorted=[...trades].sort((a,b)=>parseDD(b.sell_date)-parseDD(a.sell_date));
+  if(sym) sorted=sorted.filter(t=>t.symbol===sym);
+  if(plan) sorted=sorted.filter(t=>t.followed_plan===plan);
+  if(q) sorted=sorted.filter(t=>t.symbol.toLowerCase().includes(q)||(t.entry_reason||'').toLowerCase().includes(q)||(t.lesson||'').toLowerCase().includes(q)||(t.emotion||'').toLowerCase().includes(q));
+  tbody.innerHTML=sorted.map(t=>`<tr>
+    <td style="font-weight:600">${t.symbol}</td>
+    <td style="color:#888">${t.sell_date}</td>
+    <td class="${t.net>=0?'green':'red'}" style="font-weight:600">${f$(Math.round(t.net))}</td>
+    <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.entry_reason||'<span style="color:#ccc">—</span>'}</td>
+    <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.exit_reason||'<span style="color:#ccc">—</span>'}</td>
+    <td>${t.respected_stop?`<span class="badge ${t.respected_stop==='כן'?'badge-green':'badge-red'}">${t.respected_stop}</span>`:'—'}</td>
+    <td>${t.followed_plan?`<span class="badge ${t.followed_plan==='כן'?'badge-green':t.followed_plan==='חלקית'?'':'badge-red'}">${t.followed_plan}</span>`:'—'}</td>
+    <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#888">${t.lesson||'—'}</td>
+    <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#888">${t.emotion||'—'}</td>
+    <td><button class="icon-btn" onclick="openJournal(${t.id})">✏️</button></td>
+  </tr>`).join('');
+}
+
+function openJournal(id) {
+  journalId=id; const t=trades.find(x=>x.id===id);
+  document.getElementById('j-title').textContent=`${t.symbol} ${t.sell_date}`;
+  document.getElementById('j-entry').value=t.entry_reason||'';
+  document.getElementById('j-exit').value=t.exit_reason||'';
+  document.getElementById('j-stop').value=t.respected_stop||'';
+  document.getElementById('j-plan').value=t.followed_plan||'';
+  document.getElementById('j-lesson').value=t.lesson||'';
+  document.getElementById('j-emotion').value=t.emotion||'';
+  document.getElementById('modal-journal').style.display='flex';
+}
+function closeJournal(){document.getElementById('modal-journal').style.display='none';journalId=null;}
+async function saveJournal() {
+  const t=trades.find(x=>x.id===journalId);
+  if(!t){closeJournal();return;}
+  const updated={...t,entry_reason:document.getElementById('j-entry').value.trim(),exit_reason:document.getElementById('j-exit').value.trim(),respected_stop:document.getElementById('j-stop').value,followed_plan:document.getElementById('j-plan').value,lesson:document.getElementById('j-lesson').value.trim(),emotion:document.getElementById('j-emotion').value.trim()};
+  closeJournal(); setStatus('שומר יומן...','info');
+  const res=await apiPost({action:'update',trade:updated});
+  if(res.ok){trades=trades.map(x=>x.id===journalId?updated:x);setStatus('✓ יומן נשמר','ok');setTimeout(()=>setStatus('',''),2000);renderJournal();renderTrades();}
+  else setStatus('❌ שגיאה','error');
+}
+
+// ── Analysis ────────────────────────────────────────────────
+function renderAnalysis(st) {
+  destroyChart('sym'); destroyChart('wr');
+  const ts={color:'#aaa',font:{size:11}};
+  const top=st.symArr.slice(0,10);
+  charts['sym']=new Chart(document.getElementById('chart-sym'),{type:'bar',data:{labels:top.map(s=>s.symbol),datasets:[{data:top.map(s=>s.net),backgroundColor:top.map(s=>s.net>=0?'rgba(22,163,127,0.8)':'rgba(217,79,79,0.8)'),borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>f$(c.raw)},bodyColor:'#333',titleColor:'#333',backgroundColor:'#fff',borderColor:'#eee',borderWidth:1}},scales:{x:{ticks:{...ts,callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:ts,grid:{display:false}}}}});
+  const sWR=[...st.symArr].sort((a,b)=>b.winRate-a.winRate).slice(0,10);
+  charts['wr']=new Chart(document.getElementById('chart-wr'),{type:'bar',data:{labels:sWR.map(s=>s.symbol),datasets:[{data:sWR.map(s=>s.winRate),backgroundColor:sWR.map(s=>s.winRate>=70?'rgba(22,163,127,0.8)':s.winRate>=50?'rgba(55,138,221,0.8)':'rgba(217,79,79,0.8)'),borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+'%'},bodyColor:'#333',titleColor:'#333',backgroundColor:'#fff',borderColor:'#eee',borderWidth:1}},scales:{x:{ticks:{...ts,callback:v=>v+'%'},max:110,grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:ts,grid:{display:false}}}}});
+  document.getElementById('sym-table').innerHTML=`<thead><tr><th>סימבול</th><th>עסקאות</th><th>Win Rate</th><th>נטו $</th><th>נטו ₪</th></tr></thead><tbody>`+st.symArr.map(s=>{
+    const symTrades=trades.filter(t=>t.symbol===s.symbol);
+    const netIls=Math.round(tradesNetIls(symTrades));
+    return `<tr><td>${s.symbol}</td><td style="color:#aaa">${s.trades}</td><td class="${s.winRate>=70?'green':s.winRate>=50?'blue':'red'}">${s.winRate}%</td><td style="font-weight:600" class="${s.net>=0?'green':'red'}">${f$(s.net)}</td><td style="font-weight:600" class="${netIls>=0?'green':'red'}">${fILS(netIls)}</td></tr>`;
+  }).join('')+'</tbody>';
+}
+
+// ── Insights ────────────────────────────────────────────────
+function renderInsights(st) {
+  const ig=document.getElementById('insights-grid');
+  if(!ig) return;
+  const topSym=st.symArr[0], worstSym=st.symArr[st.symArr.length-1];
+  const dowNames=['א','ב','ג','ד','ה','ו','ש'];
+  const bestDow=Object.entries(st.byDow).sort((a,b)=>b[1].net-a[1].net)[0];
+  const worstDow=Object.entries(st.byDow).sort((a,b)=>a[1].net-b[1].net)[0];
+  const top20count=Math.ceil(st.total*0.2);
+  const top20net=[...trades].sort((a,b)=>b.net-a.net).slice(0,top20count).reduce((s,t)=>s+t.net,0);
+  const top20pct=st.totalNet>0?Math.round(top20net/st.totalNet*100):0;
+  const bestHold=Object.entries(st.holdBuckets).sort((a,b)=>b[1]-a[1])[0];
+
+  ig.innerHTML=[
+    ['🏆','סימבול מוביל',topSym?topSym.symbol:'—',topSym?f$(topSym.net)+` (${topSym.winRate}% WR)`:''],
+    ['⚠️','סימבול חלש ביותר',worstSym&&worstSym.net<0?worstSym.symbol:'אין הפסדים',worstSym&&worstSym.net<0?f$(worstSym.net):''],
+    ['📅','יום חזק בשבוע',bestDow?'יום '+dowNames[+bestDow[0]]:'—',bestDow?f$(Math.round(bestDow[1].net)):''],
+    ['📉','יום חלש בשבוע',worstDow&&worstDow[1].net<0?'יום '+dowNames[+worstDow[0]]:'—',worstDow&&worstDow[1].net<0?f$(Math.round(worstDow[1].net)):''],
+    ['🎯','Expectancy',f$(Math.round(st.expectancy)),'לעסקה ממוצעת'],
+    ['🔥','Winning Streak',st.maxWS+' עסקאות רצופות','רצף מנצח מקסימלי'],
+    ['❄️','Losing Streak',st.maxLS+' עסקאות רצופות','רצף מפסיד מקסימלי'],
+    ['⏱️','Avg Hold Time',st.avgHold.toFixed(1)+' ימים','ממוצע'],
+    ['💥','Largest Win',f$(Math.round(st.largestWin)),'עסקה רווחית ביותר'],
+    ['💔','Largest Loss',f$(Math.round(st.largestLoss)),'עסקה מפסידה ביותר'],
+    ['📊','חוק 80/20',top20pct+'% מהרווח','מ-20% העסקאות הטובות'],
+    ['⏳','משך החזקה מנצח',bestHold?bestHold[0]:'—',bestHold?f$(Math.round(bestHold[1])):''],
+  ].map(([i,t,v,s])=>`<div class="insight-card"><div class="insight-icon">${i}</div><div class="insight-title">${t}</div><div class="insight-val">${v}</div><div class="insight-sub">${s}</div></div>`).join('');
+
+  document.getElementById('adv-stats').innerHTML=[
+    ['Win Rate',st.winRate+'%'],
+    ['Profit Factor',st.pf],
+    ['Expectancy',f$(Math.round(st.expectancy))],
+    ['Avg Win',f$(Math.round(st.avgWin))],
+    ['Avg Loss',f$(Math.round(st.avgLoss))],
+    ['Max Winning Streak',st.maxWS+' עסקאות'],
+    ['Max Losing Streak',st.maxLS+' עסקאות'],
+    ['Largest Win',f$(Math.round(st.largestWin))],
+    ['Largest Loss',f$(Math.round(st.largestLoss))],
+    ['Avg Hold Time',st.avgHold.toFixed(1)+' ימים'],
+    ['סה"כ עסקאות',st.total],
+    ['עסקאות רווחיות',st.wins],
+    ['עסקאות מפסידות',st.losses],
+  ].map(([l,v])=>`<div class="stat-row"><span class="stat-label">${l}</span><span class="stat-val">${v}</span></div>`).join('');
+
+  // Charts
+  destroyChart('dow'); destroyChart('hold'); destroyChart('size');
+  const ts={color:'#aaa',font:{size:10}};
+  const dowLabels=['א','ב','ג','ד','ה','ו','ש'];
+  const dowData=dowLabels.map((_,i)=>Math.round((st.byDow[i]||{net:0}).net));
+  charts['dow']=new Chart(document.getElementById('chart-dow'),{type:'bar',data:{labels:dowLabels,datasets:[{data:dowData,backgroundColor:dowData.map(v=>v>=0?'rgba(22,163,127,0.8)':'rgba(217,79,79,0.8)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>f$(c.raw)}}},scales:{x:{ticks:ts,grid:{display:false}},y:{ticks:{...ts,callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:'rgba(0,0,0,0.05)'}}}}});
+  const hLabels=Object.keys(st.holdBuckets), hData=Object.values(st.holdBuckets).map(Math.round);
+  charts['hold']=new Chart(document.getElementById('chart-hold'),{type:'bar',data:{labels:hLabels,datasets:[{data:hData,backgroundColor:hData.map(v=>v>=0?'rgba(22,163,127,0.8)':'rgba(217,79,79,0.8)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>f$(c.raw)}}},scales:{x:{ticks:{...ts,maxRotation:30},grid:{display:false}},y:{ticks:{...ts,callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:'rgba(0,0,0,0.05)'}}}}});
+  const sLabels=Object.keys(st.sizeBuckets), sData=Object.values(st.sizeBuckets).map(Math.round);
+  charts['size']=new Chart(document.getElementById('chart-size'),{type:'bar',data:{labels:sLabels,datasets:[{data:sData,backgroundColor:sData.map(v=>v>=0?'rgba(22,163,127,0.8)':'rgba(217,79,79,0.8)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>f$(c.raw)}}},scales:{x:{ticks:ts,grid:{display:false}},y:{ticks:{...ts,callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:'rgba(0,0,0,0.05)'}}}}});
+}
+
+// ── Heat Map ────────────────────────────────────────────────
+function renderHeatmap() {
+  const sel=document.getElementById('hm-year');
+  if(!sel) return;
+  const years=[...new Set(trades.map(t=>t.sell_date?t.sell_date.split('/')[2]:null).filter(Boolean))].sort();
+  if(!years.length) return;
+  const prevYear=sel.value; sel.innerHTML=years.map(y=>`<option>${y}</option>`).join(''); if(prevYear&&years.includes(prevYear)) sel.value=prevYear;
+  const year=sel.value||years[years.length-1];
+  sel.value=year;
+
+  const st=calcStats();
+  const container=document.getElementById('heatmap-container');
+  const months=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+  let html='';
+  for(let m=0;m<12;m++) {
+    const firstDay=new Date(+year,m,1).getDay();
+    const daysInMonth=new Date(+year,m+1,0).getDate();
+    html+=`<div style="margin-bottom:16px"><div style="font-size:12px;color:#888;margin-bottom:6px">${months[m]} ${year}</div><div class="heatmap-wrap"><div class="heatmap-grid">`;
+    ['א','ב','ג','ד','ה','ו','ש'].forEach(d=>html+=`<div class="hm-head">${d}</div>`);
+    for(let i=0;i<firstDay;i++) html+=`<div></div>`;
+    for(let d=1;d<=daysInMonth;d++) {
+      const key=`${year}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const val=st.byDate[key];
+      let bg='#f5f5f5', color='#aaa';
+      if(darkMode){bg='#1e2130';color='#444';}
+      if(val!==undefined) {
+        if(val>0){const intens=Math.min(1,Math.abs(val)/5000);bg=`rgba(22,163,127,${0.2+intens*0.7})`;color='#fff';}
+        else if(val<0){const intens=Math.min(1,Math.abs(val)/5000);bg=`rgba(217,79,79,${0.2+intens*0.7})`;color='#fff';}
+        else{bg='#eee';color='#aaa';}
+      }
+      html+=`<div class="hm-cell" style="background:${bg};color:${color}" title="${key}: ${val!==undefined?f$(Math.round(val)):'אין מסחר'}">${d}</div>`;
+    }
+    html+=`</div></div></div>`;
+  }
+  container.innerHTML=html;
+}
+
+// ── Goals Tab ───────────────────────────────────────────────
+function renderGoalsTab(st) {
+  document.getElementById('goal-input').value=monthGoal;
+  const pct=Math.min(100,Math.round(st.curMonthNet/monthGoal*100));
+  document.getElementById('goal-detail').innerHTML=`<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span class="${st.curMonthNet>=0?'green':'red'}" style="font-weight:600;font-size:18px">${f$(Math.round(st.curMonthNet))}</span><span style="color:#aaa">${f$(monthGoal)}</span></div><div class="goal-bar-bg" style="height:10px"><div class="goal-bar-fill" style="width:${pct}%;background:${pct>=100?GREEN:BLUE}"></div></div><div style="font-size:13px;color:#aaa;margin-top:6px">${pct>=100?'🎯 יעד הושג החודש!':'נותר: '+f$(Math.round(monthGoal-st.curMonthNet))}</div>`;
+  document.getElementById('month-history-table').innerHTML=`<thead><tr><th>חודש</th><th>עסקאות</th><th>Win %</th><th>נטו</th></tr></thead><tbody>`+[...st.monthArr].reverse().map(m=>`<tr style="${m.month===st.curMonth?'background:#f9fffe':''}"><td style="font-weight:${m.month===st.curMonth?600:400}">${m.label}${m.month===st.curMonth?' ◀':''}</td><td style="color:#aaa">${m.trades}</td><td class="${Math.round(m.wins/m.trades*100)>=60?'green':'red'}">${Math.round(m.wins/m.trades*100)}%</td><td style="font-weight:600" class="${m.net>=0?'month-good':'month-bad'}">${f$(m.net)}</td></tr>`).join('')+'</tbody>';
+}
+
+async function saveGoal(){const v=+document.getElementById('goal-input').value;if(!v||v<=0)return;monthGoal=v;setStatus('שומר יעד...','info');const res=await apiPost({action:'setGoal',goal:v});if(res.ok){setStatus('✓ יעד נשמר','ok');setTimeout(()=>setStatus('',''),2000);}renderAll();}
+
+// ── Tab switching ───────────────────────────────────────────
+function switchTab(name,btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='positions') {
+    if(positions.length>0 && Object.keys(liveData).length===0) refreshPrices();
+    connectPolygonWS();
+  }
+  if(name==='watchlist') { renderWatchlist(); if(watchlist.length>0) refreshWatchlist(); }
+  if(name==='quicktrade') { qtReset(); }
+  if(name==='progress') renderProgress();
+  if(name==='heatmap') renderHeatmap();
+  if(name==='insights') { const st=calcStats(); renderInsights(st); }
+  if(name==='symnotes') renderSymNotes();
+}
+
+// ── Add/Edit Trade form ─────────────────────────────────────
+function openAddForm(){editId=null;document.getElementById('modal-title').textContent='עסקה חדשה';['symbol','buy-date','sell-date','qty','buy-price','sell-price','notes'].forEach(f=>document.getElementById('f-'+f).value='');document.getElementById('preview-box').style.display='none';document.getElementById('modal-form').style.display='flex';}
+function openEdit(id){editId=id;const t=trades.find(x=>x.id===id);document.getElementById('modal-title').textContent='עריכת עסקה';document.getElementById('f-symbol').value=t.symbol;document.getElementById('f-buy-date').value=t.buy_date;document.getElementById('f-sell-date').value=t.sell_date;document.getElementById('f-qty').value=t.qty;document.getElementById('f-buy-price').value=t.buy_price;document.getElementById('f-sell-price').value=t.sell_price;document.getElementById('f-notes').value=t.notes||'';calcPreview();document.getElementById('modal-form').style.display='flex';}
+function closeForm(){document.getElementById('modal-form').style.display='none';editId=null;}
+
+function calcPreview(){
+  const qty=+document.getElementById('f-qty').value,bp=+document.getElementById('f-buy-price').value,sp=+document.getElementById('f-sell-price').value;
+  if(!qty||!bp||!sp){document.getElementById('preview-box').style.display='none';return;}
+  const gross=+(qty*(sp-bp)).toFixed(2),tax=+(gross*TAX).toFixed(2),net=+(gross-tax).toFixed(2),pct=+(((sp-bp)/bp)*100).toFixed(2);
+  const box=document.getElementById('preview-box');box.style.display='block';
+  box.innerHTML=`ברוטו: ${f$(gross)} | מס 25%: ${f$(tax)} | <strong class="${net>=0?'green':'red'}">נטו: ${f$(net)} (${fpct(pct)})</strong>`;
+}
+
+async function submitTrade(){
+  const sym=document.getElementById('f-symbol').value.trim().toUpperCase();
+  const bd=document.getElementById('f-buy-date').value.trim(),sd=document.getElementById('f-sell-date').value.trim();
+  const qty=+document.getElementById('f-qty').value,bp=+document.getElementById('f-buy-price').value,sp=+document.getElementById('f-sell-price').value;
+  const notes=document.getElementById('f-notes').value.trim();
+  if(!sym||!sd||!qty||!bp||!sp){alert('נא למלא: סימבול, תאריך מכירה, כמות, מחיר קנייה, מחיר מכירה');return;}
+  const cost=+(qty*bp).toFixed(2),gross=+(qty*(sp-bp)).toFixed(2),tax=+(gross*TAX).toFixed(2),net=+(gross-tax).toFixed(2),pct=+(((sp-bp)/bp)*100).toFixed(2);
+  const hold_days=bd&&sd?Math.round(Math.abs(parseDD(sd)-parseDD(bd))/86400000):0;
+  const[d,m,y]=sd.split('/');const month=y&&m?`${y}-${m.padStart(2,'0')}`:'';
+  const trade={symbol:sym,buy_date:bd,sell_date:sd,qty,buy_price:bp,sell_price:sp,cost,gross,tax,net,pct,hold_days,month,notes};
+  closeForm();setStatus('שומר עסקה...','info');showLoading(true);
+  if(editId!==null){
+    trade.id=editId;
+    const cur=trades.find(x=>x.id===editId)||{};
+    ['entry_reason','exit_reason','respected_stop','followed_plan','lesson','emotion'].forEach(k=>{trade[k]=cur[k]||'';});
+    const res=await apiPost({action:'update',trade});
+    if(res.ok){setStatus('✓ עסקה עודכנה','ok');}else{setStatus('❌ '+(res.error||'שגיאה'),'error');showLoading(false);return;}
+  } else {
+    const res=await apiPost({action:'add',trade});
+    if(res.ok){trade.id=res.trade.id;setStatus('✓ עסקה נוספה','ok');}else{setStatus('❌ '+(res.error||'שגיאה'),'error');showLoading(false);return;}
+  }
+  setTimeout(()=>setStatus('',''),3000);
+  await load(); renderAll(); showLoading(false);
+}
+
+async function deleteTrade(id){
+  if(!confirm('למחוק עסקה זו?'))return;
+  setStatus('מוחק...','info');showLoading(true);
+  const res=await apiPost({action:'delete',id});
+  if(res.ok){setStatus('✓ עסקה נמחקה','ok');setTimeout(()=>setStatus('',''),2000);await load();renderAll();}
+  else setStatus('❌ '+(res.error||'שגיאה'),'error');
+  showLoading(false);
+}
+
+// ── Notes ───────────────────────────────────────────────────
+function openNote(id){noteId=id;const t=trades.find(x=>x.id===id);document.getElementById('note-text').value=t.notes||'';document.getElementById('modal-note').style.display='flex';}
+function closeNote(){document.getElementById('modal-note').style.display='none';noteId=null;}
+async function saveNote(){
+  const txt=document.getElementById('note-text').value.trim();
+  const t=trades.find(x=>x.id===noteId);if(!t){closeNote();return;}
+  closeNote();setStatus('שומר הערה...','info');
+  const res=await apiPost({action:'update',trade:{...t,notes:txt}});
+  if(res.ok){setStatus('✓ הערה נשמרה','ok');setTimeout(()=>setStatus('',''),2000);await load();renderAll();}
+  else setStatus('❌ שגיאה','error');
+}
+
+// ── Export CSV ──────────────────────────────────────────────
+function exportCSV() {
+  const headers = ['סימבול','תאריך קנייה','תאריך מכירה','כמות','מחיר קנייה','מחיר מכירה','עלות $','ברוטו $','מס $','נטו $','%','חודש','ימי החזקה','הערות','סיבת כניסה','סיבת יציאה','כיבד סטופ','לפי תוכנית','לקח','מצב רגשי'];
+  const fields = ['symbol','buy_date','sell_date','qty','buy_price','sell_price','cost','gross','tax','net','pct','month','hold_days','notes','entry_reason','exit_reason','respected_stop','followed_plan','lesson','emotion'];
+  const rows = [headers.join(',')];
+  const sorted = [...trades].sort((a,b)=>parseDD(a.sell_date)-parseDD(b.sell_date));
+  sorted.forEach(t => {
+    rows.push(fields.map(f => {
+      const v = t[f]??'';
+      return typeof v === 'string' && v.includes(',') ? `"${v}"` : v;
+    }).join(','));
+  });
+  const blob = new Blob(['﻿'+rows.join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `FIFO_PRO_${new Date().toLocaleDateString('en-GB').replace(/\//g,'-')}.csv`;
+  a.click();
+}
+
+
+// ── Alert system for positions ──────────────────────────────
+function checkPositionAlerts() {
+  if (!positions.length) return;
+  const alerts = [];
+  positions.forEach(p => {
+    const live = liveData[p.symbol];
+    if (!live || !live.price) return;
+    const price = live.price;
+    if (p.target && price >= p.target) {
+      alerts.push({ type: 'target', msg: `🎯 ${p.symbol} הגיע ליעד! $${price.toFixed(2)} ≥ $${p.target}` });
+    }
+    if (p.stop_loss && price <= p.stop_loss) {
+      alerts.push({ type: 'stop', msg: `🛑 ${p.symbol} פגע בסטופ! $${price.toFixed(2)} ≤ $${p.stop_loss}` });
+    }
+    const pct = ((price - p.avg_price) / p.avg_price * 100);
+    if (pct <= -5 && (!p.stop_loss || price > p.stop_loss)) {
+      alerts.push({ type: 'warn', msg: `⚠️ ${p.symbol} ירד ${pct.toFixed(1)}% מהכניסה` });
+    }
+  });
+
+  const banner = document.getElementById('alert-banner');
+  if (!banner) return;
+  if (alerts.length === 0) { banner.style.display = 'none'; return; }
+
+  const priority = alerts.find(a => a.type === 'stop') || alerts.find(a => a.type === 'target') || alerts[0];
+  const alertKey = priority.msg;
+
+  // אל תציג שוב אם כבר הוצג — מנע הפרעה חוזרת
+  if (banner._lastAlert === alertKey) return;
+  banner._lastAlert = alertKey;
+
+  banner.className = 'alert-banner ' + priority.type;
+  banner.style.display = 'flex';
+  banner.style.alignItems = 'center';
+  banner.style.justifyContent = 'space-between';
+  banner.innerHTML = `<span>${priority.msg}${alerts.length > 1 ? ` <span style="color:#aaa;font-size:11px">(+${alerts.length-1} נוספות)</span>` : ''}</span>
+    <button onclick="dismissAlert()" style="background:none;border:none;cursor:pointer;font-size:16px;color:#aaa;padding:0 4px;margin-right:4px">✕</button>`;
+
+  // קול התראה — רק פעם אחת
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = priority.type === 'stop' ? 440 : 880;
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start(); osc.stop(ctx.currentTime + 0.3);
+  } catch {}
+}
+
+function dismissAlert() {
+  const banner = document.getElementById('alert-banner');
+  if (!banner) return;
+  banner.style.display = 'none';
+  // שמור את ההתראה כ-dismissed לשעה הקרובה
+  banner._dismissed = Date.now();
+  banner._lastAlert = banner._lastAlert + '_dismissed';
+}
+
+
+// ── R:R Calculator ──────────────────────────────────────────
+function calcRR() {
+  const price = +document.getElementById('pf-price').value;
+  const target = +document.getElementById('pf-target').value;
+  const stop = +document.getElementById('pf-stop').value;
+  const qty = +document.getElementById('pf-qty').value;
+  const box = document.getElementById('rr-box');
+  if (!price || !target || !stop) { if(box) box.style.display='none'; return; }
+  if(box) box.style.display='block';
+  const risk = price - stop;
+  const reward = target - price;
+  const ratio = reward / risk;
+  const totalRisk = risk * (qty || 0);
+  const portfolioVal = 67000; // ערך תיק משוער
+  const riskPct = (totalRisk / portfolioVal * 100).toFixed(1);
+  document.getElementById('rr-risk').textContent = risk > 0 ? `$${risk.toFixed(2)}` : '—';
+  document.getElementById('rr-reward').textContent = reward > 0 ? `$${reward.toFixed(2)}` : '—';
+  const ratioEl = document.getElementById('rr-ratio');
+  ratioEl.textContent = ratio > 0 ? `1:${ratio.toFixed(2)}` : '—';
+  ratioEl.style.color = ratio >= 2 ? '#16a37f' : ratio >= 1 ? '#378add' : '#d94f4f';
+  document.getElementById('rr-total-risk').textContent = qty && risk > 0 ? `$${totalRisk.toFixed(0)} (${riskPct}%)` : '—';
+}
+
+// ── Weekly Summary ──────────────────────────────────────────
+function renderWeeklySummary() {
+  const container = document.getElementById('weekly-summary');
+  if (!container || !trades.length) return;
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - ((dayOfWeek + 1) % 7)); // ראשון
+  startOfWeek.setHours(0,0,0,0);
+  const startOfLastWeek = new Date(startOfWeek);
+  startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+
+  const isThisWeek = t => { const d = parseDD(t.sell_date); return d >= startOfWeek && d <= now; };
+  const isLastWeek = t => { const d = parseDD(t.sell_date); return d >= startOfLastWeek && d < startOfWeek; };
+
+  const thisWeekTrades = trades.filter(isThisWeek);
+  const lastWeekTrades = trades.filter(isLastWeek);
+  const thisWeekNet = thisWeekTrades.reduce((s,t) => s+t.net, 0);
+  const lastWeekNet = lastWeekTrades.reduce((s,t) => s+t.net, 0);
+  const avgWeeklyNet = trades.length ? (() => {
+    const byWeek = {};
+    trades.forEach(t => {
+      const d = parseDD(t.sell_date);
+      const wk = Math.floor((d - new Date(2025,0,1)) / (7*86400000));
+      if (!byWeek[wk]) byWeek[wk] = 0;
+      byWeek[wk] += t.net;
+    });
+    const vals = Object.values(byWeek);
+    return vals.reduce((s,v) => s+v, 0) / vals.length;
+  })() : 0;
+
+  container.style.display = 'grid';
+  container.innerHTML = [
+    ['השבוע', thisWeekNet, `${thisWeekTrades.length} עסקאות`],
+    ['שבוע שעבר', lastWeekNet, `${lastWeekTrades.length} עסקאות`],
+    ['ממוצע שבועי', avgWeeklyNet, 'מאז מרץ 2025'],
+  ].map(([label, val, sub]) => `
+    <div class="week-card">
+      <div class="week-card-label">${label}</div>
+      <div class="week-card-val ${val >= 0 ? 'green' : 'red'}">${f$(Math.round(val))}</div>
+      <div style="font-size:11px;color:#aaa;margin-top:3px">${sub}</div>
+    </div>`).join('');
+}
+
+// ── Drawdown Chart ──────────────────────────────────────────
+function renderDrawdownChart(st) {
+  destroyChart('dd');
+  const canvas = document.getElementById('chart-dd');
+  if (!canvas) return;
+  // חשב equity ו-drawdown לפי חודש
+  let peak = 0, cum = 0;
+  const ddData = st.monthArr.map(m => {
+    cum += m.net;
+    peak = Math.max(peak, cum);
+    return { label: m.label, dd: Math.round(cum - peak) };
+  });
+  const ts = { color: '#aaa', font: { size: 10 } };
+  charts['dd'] = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: ddData.map(d => d.label),
+      datasets: [{
+        data: ddData.map(d => d.dd),
+        borderColor: '#d94f4f',
+        backgroundColor: 'rgba(217,79,79,0.07)',
+        borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2,
+        pointBackgroundColor: '#d94f4f'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => f$(c.raw) }, bodyColor: '#333', titleColor: '#333', backgroundColor: '#fff', borderColor: '#eee', borderWidth: 1 } },
+      scales: {
+        x: { ticks: { ...ts, maxRotation: 45 }, grid: { display: false } },
+        y: { ticks: { ...ts, callback: v => '$' + (v/1000).toFixed(0) + 'k' }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+// ── Symbol Notes ────────────────────────────────────────────
+function renderSymNotes() {
+  const container = document.getElementById('sym-notes-container');
+  if (!container) return;
+  const q = (document.getElementById('symnote-search')?.value || '').toLowerCase();
+  // קבץ לפי סימבול — רק עסקאות עם תוכן ביומן
+  const bySymbol = {};
+  trades.forEach(t => {
+    const hasContent = t.entry_reason || t.exit_reason || t.lesson || t.emotion || t.notes;
+    if (!hasContent) return;
+    if (q && !t.symbol.toLowerCase().includes(q)) return;
+    if (!bySymbol[t.symbol]) bySymbol[t.symbol] = [];
+    bySymbol[t.symbol].push(t);
+  });
+  if (!Object.keys(bySymbol).length) {
+    container.innerHTML = '<div style="color:#aaa;font-size:13px;grid-column:1/-1">אין תוכן יומן עדיין. הוסף הערות ולקחים לעסקאות בטאב יומן.</div>';
+    return;
+  }
+  container.innerHTML = Object.entries(bySymbol)
+    .sort((a,b) => a[0].localeCompare(b[0]))
+    .map(([sym, ts]) => {
+      const totalNet = ts.reduce((s,t) => s+t.net, 0);
+      const items = ts.slice(0, 5).map(t => {
+        const content = t.lesson || t.entry_reason || t.notes || '';
+        if (!content) return '';
+        return `<div class="sym-note-item">
+          <span class="sym-note-date">${t.sell_date}</span>
+          <span>${content.slice(0, 80)}${content.length > 80 ? '...' : ''}</span>
+        </div>`;
+      }).filter(Boolean).join('');
+      return `<div class="sym-note-card">
+        <div class="sym-note-sym">${sym} <span style="font-size:12px;font-weight:400;color:${totalNet>=0?'#16a37f':'#d94f4f'}">${f$(Math.round(totalNet))}</span></div>
+        <div style="font-size:11px;color:#aaa;margin-bottom:8px">${ts.length} עסקאות עם הערות</div>
+        ${items || '<div style="color:#ccc;font-size:12px">אין תוכן</div>'}
+        ${ts.length > 5 ? `<div style="font-size:11px;color:#aaa;margin-top:6px">+${ts.length-5} נוספות...</div>` : ''}
+      </div>`;
+    }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// WATCHLIST
+// ══════════════════════════════════════════════════════════════
+let watchlist = [];
+
+function normalizeWatchlistRows(rows) {
+  return (rows || []).map(w => ({
+    symbol: String(w.symbol || '').trim().toUpperCase(),
+    note: w.note || '',
+    added: w.added || ''
+  })).filter(w => w.symbol);
+}
+
+function loadWatchlist() {
+  try { watchlist = JSON.parse(localStorage.getItem('fifo_watchlist') || '[]'); } catch { watchlist = []; }
+  watchlist = normalizeWatchlistRows(watchlist);
+}
+
+function saveWatchlist() {
+  try { localStorage.setItem('fifo_watchlist', JSON.stringify(watchlist)); } catch {}
+}
+
+async function loadWatchlistFromSheets({silent=false} = {}) {
+  if (!isApiConfigured()) { loadWatchlist(); return false; }
+  try {
+    if (!silent) setStatus('טוען Watchlist מה־Database...', 'info');
+    const res = await fetch(API_URL + '?action=getWatchlist&t=' + Date.now(), { cache: 'no-store', redirect: 'follow' });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch (e) { throw new Error('getWatchlist לא החזיר JSON: ' + text.slice(0, 80)); }
+    if (!data.ok) throw new Error(data.error || 'שגיאה בטעינת Watchlist');
+
+    watchlist = normalizeWatchlistRows(data.watchlist || []);
+    saveWatchlist();
+    renderWatchlist();
+    if (!silent) {
+      setStatus('✓ Watchlist נטען מה־Database: ' + watchlist.length + ' סימבולים', 'ok');
+      setTimeout(() => setStatus('', ''), 2500);
+    }
+    return true;
+  } catch(err) {
+    console.error('loadWatchlistFromSheets error:', err);
+    if (!silent) setStatus('❌ Watchlist לא נטען מה־Database: ' + err.message, 'error');
+    loadWatchlist();
+    renderWatchlist();
+    return false;
+  }
+}
+
+async function addWatchlistItem() {
+  const sym = (document.getElementById('watchlist-input').value || '').trim().toUpperCase();
+  const note = (document.getElementById('watchlist-note').value || '').trim();
+  if (!sym) return;
+  if (watchlist.find(w => w.symbol === sym)) {
+    alert(sym + ' כבר ברשימת המעקב');
+    return;
+  }
+  const added = new Date().toLocaleDateString('he-IL');
+
+  try {
+    setStatus('שומר ' + sym + ' ב־Database...', 'info');
+    const url = API_URL + '?action=addWatchlist&symbol=' + encodeURIComponent(sym) +
+                '&note=' + encodeURIComponent(note) +
+                '&added=' + encodeURIComponent(added) + '&t=' + Date.now();
+    const res = await fetch(url, { cache: 'no-store', redirect: 'follow' });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch (e) { throw new Error('addWatchlist לא החזיר JSON: ' + text.slice(0, 80)); }
+    if (!data.ok) throw new Error(data.error || 'שגיאה בשמירה');
+
+    document.getElementById('watchlist-input').value = '';
+    document.getElementById('watchlist-note').value = '';
+
+    // אחרי שמירה — מושך שוב מה־Sheet כדי לוודא שזה באמת מה שמוצג בכל מכשיר
+    await loadWatchlistFromSheets({silent:true});
+    setStatus('✓ ' + sym + ' נשמר ונטען מה־Database', 'ok');
+    setTimeout(() => setStatus('', ''), 2500);
+
+    fetchLivePrice(sym).then(d => {
+      if (d) { liveData[sym] = d; renderWatchlist(); }
+    });
+  } catch(err) {
+    console.error('addWatchlist error:', err);
+    setStatus('❌ לא נשמר ב־Database: ' + err.message, 'error');
+  }
+}
+
+async function removeWatchlistItem(sym) {
+  if (!confirm('להסיר את ' + sym + ' מה־Watchlist?')) return;
+  try {
+    setStatus('מוחק ' + sym + ' מה־Database...', 'info');
+    const url = API_URL + '?action=removeWatchlist&symbol=' + encodeURIComponent(sym) + '&t=' + Date.now();
+    const res = await fetch(url, { cache: 'no-store', redirect: 'follow' });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch (e) { throw new Error('removeWatchlist לא החזיר JSON: ' + text.slice(0, 80)); }
+    if (!data.ok) throw new Error(data.error || 'שגיאה במחיקה');
+    await loadWatchlistFromSheets({silent:true});
+    setStatus('✓ ' + sym + ' נמחק מה־Database', 'ok');
+    setTimeout(() => setStatus('', ''), 2000);
+  } catch(err) {
+    console.error('removeWatchlist error:', err);
+    setStatus('❌ לא נמחק מה־Database: ' + err.message, 'error');
+  }
+}
+
+async function refreshWatchlist() {
+  setStatus('מרענן Watchlist מה־Database...', 'info');
+  await loadWatchlistFromSheets({silent:true});
+  if (!watchlist.length) {
+    renderWatchlist();
+    setStatus('Watchlist ריק ב־Database', 'warn');
+    setTimeout(() => setStatus('', ''), 2500);
+    return;
+  }
+  const syms = watchlist.map(w => w.symbol);
+  const prices = await fetchAllPrices(syms);
+  Object.entries(prices).forEach(([sym, p]) => {
+    if (p && p.ok) liveData[sym] = { ...(liveData[sym]||{}), ...p, updated: new Date().toLocaleTimeString('he-IL') };
+  });
+  renderWatchlist();
+  setStatus('✓ Watchlist עודכן מה־Database', 'ok');
+  setTimeout(() => setStatus('', ''), 2000);
+}
+
+function renderWatchlist() {
+  const grid = document.getElementById('watchlist-grid');
+  if (!grid) return;
+  if (!watchlist.length) {
+    grid.innerHTML = '<div style="color:#aaa;font-size:13px;grid-column:1/-1">אין סימבולים ב־Watchlist ב־Database</div>';
+    return;
+  }
+  grid.innerHTML = watchlist.map(w => {
+    const live = liveData[w.symbol];
+    const price = live?.price;
+    const chg = live?.changePct;
+    const pre = live?.preMarket;
+    const post = live?.postMarket;
+    const inTrades = trades.filter(t => t.symbol === w.symbol);
+    const totalPnl = inTrades.reduce((s,t) => s+t.net, 0);
+    return `<div class="wl-card">
+      <button class="wl-remove" onclick="removeWatchlistItem('${w.symbol}')" title="הסר">✕</button>
+      <div class="wl-sym">${w.symbol} ${live ? '<span class="live-dot"></span>' : ''}</div>
+      <div class="wl-price ${!price ? '' : chg >= 0 ? 'green' : 'red'}">${price ? '$' + price.toFixed(2) : '—'}</div>
+      ${chg !== null && chg !== undefined ? `<div class="wl-change ${chg >= 0 ? 'green' : 'red'}">${chg >= 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(2)}%</div>` : ''}
+      ${pre ? `<div class="wl-meta">🌅 Pre: $${pre.toFixed(2)}</div>` : ''}
+      ${post ? `<div class="wl-meta">🌙 AH: $${post.toFixed(2)}</div>` : ''}
+      ${inTrades.length ? `<div class="wl-meta" style="margin-top:6px">${inTrades.length} עסקאות היסטוריות | ${totalPnl >= 0 ? '+' : ''}${f$(Math.round(totalPnl))}</div>` : ''}
+      ${w.note ? `<div class="wl-note">${w.note}</div>` : ''}
+      <div class="wl-meta">${live?.updated || 'נטען מה־Database'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// QUICK TRADE + POSITION SIZER
+// ══════════════════════════════════════════════════════════════
+let qtPriceCache = {};
+let qtFetchTimer = null;
+
+function qtFetchPrice() {
+  const sym = (document.getElementById('qt-symbol').value || '').trim().toUpperCase();
+  if (!sym) return;
+  clearTimeout(qtFetchTimer);
+  document.getElementById('qt-live-price').textContent = '...';
+  qtFetchTimer = setTimeout(async () => {
+    const d = await fetchLivePrice(sym);
+    if (d && d.price) {
+      qtPriceCache[sym] = d.price;
+      document.getElementById('qt-live-price').textContent = '$' + d.price.toFixed(2);
+      document.getElementById('qt-live-price').style.color = d.changePct >= 0 ? '#16a37f' : '#d94f4f';
+      // הצע מחיר קנייה אוטומטי
+      const priceEl = document.getElementById('qt-price');
+      if (!priceEl.value) priceEl.value = d.price.toFixed(2);
+      qtCalc();
+    } else {
+      document.getElementById('qt-live-price').textContent = 'לא נמצא';
+    }
+  }, 600);
+}
+
+function qtCalc() {
+  const sym = (document.getElementById('qt-symbol').value || '').trim().toUpperCase();
+  const qty = +document.getElementById('qt-qty').value;
+  const price = +document.getElementById('qt-price').value;
+  const buyPrice = +document.getElementById('qt-buy-price').value;
+  const action = document.getElementById('qt-action').value;
+  const portfolio = +document.getElementById('qt-portfolio').value || 67000;
+  const riskPct = +document.getElementById('qt-risk-pct').value || 1;
+  const stopPrice = +document.getElementById('qt-stop-price').value;
+
+  // Position Sizer
+  const sizerEl = document.getElementById('qt-sizer-result');
+  if (price && stopPrice && price > stopPrice) {
+    const maxRisk = portfolio * riskPct / 100;
+    const riskPerShare = price - stopPrice;
+    const suggestedQty = Math.floor(maxRisk / riskPerShare);
+    const suggestedCost = suggestedQty * price;
+    const reward = price * 1.1 - price; // 10% target estimate
+    const rr = riskPerShare > 0 ? (reward / riskPerShare).toFixed(2) : '—';
+    sizerEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div><div style="font-size:11px;color:#888">כמות מומלצת</div><div style="font-weight:600;color:#378add;font-size:16px">${suggestedQty.toLocaleString()}</div></div>
+        <div><div style="font-size:11px;color:#888">עלות</div><div style="font-weight:600">${f$(Math.round(suggestedCost))}</div></div>
+        <div><div style="font-size:11px;color:#888">סיכון מקסימלי</div><div style="font-weight:600;color:#d94f4f">${f$(Math.round(maxRisk))} (${riskPct}%)</div></div>
+      </div>
+      <div style="margin-top:6px;font-size:12px;color:#888">סיכון למניה: $${riskPerShare.toFixed(2)} | R:R לפי יעד 10%: 1:${rr}</div>
+      <button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="document.getElementById('qt-qty').value=${suggestedQty};qtCalc()">השתמש בכמות המומלצת</button>`;
+  } else {
+    sizerEl.innerHTML = '<div style="color:#aaa;font-size:12px">הזן מחיר וסטופ לחישוב כמות מומלצת</div>';
+  }
+
+  // תצוגה מקדימה
+  const preview = document.getElementById('qt-preview');
+  if (action === 'sell' && qty && price && buyPrice) {
+    const cost = +(qty * buyPrice).toFixed(2);
+    const gross = +(qty * (price - buyPrice)).toFixed(2);
+    const tax = +(gross * 0.25).toFixed(2);
+    const net = +(gross - tax).toFixed(2);
+    const pct = +(((price - buyPrice) / buyPrice) * 100).toFixed(2);
+    preview.style.display = 'block';
+    preview.innerHTML = `עלות: ${f$(cost)} | ברוטו: ${f$(gross)} | מס: ${f$(tax)} | <strong class="${net >= 0 ? 'green' : 'red'}">נטו: ${f$(net)} (${fpct(pct)})</strong>`;
+  } else if (action === 'buy' && qty && price) {
+    const cost = +(qty * price).toFixed(2);
+    preview.style.display = 'block';
+    preview.innerHTML = `עלות כוללת: <strong>${f$(cost)}</strong> | ${qty.toLocaleString()} מניות × $${price}`;
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+async function qtSubmit() {
+  const sym = (document.getElementById('qt-symbol').value || '').trim().toUpperCase();
+  const action = document.getElementById('qt-action').value;
+  const qty = +document.getElementById('qt-qty').value;
+  const price = +document.getElementById('qt-price').value;
+  const sellDate = document.getElementById('qt-sell-date').value;
+  const buyDate = document.getElementById('qt-buy-date').value;
+  const buyPrice = +document.getElementById('qt-buy-price').value;
+
+  if (!sym || !qty || !price) { alert('נא למלא סימבול, כמות ומחיר'); return; }
+
+  if (action === 'buy') {
+    // הוסף לפוזיציות
+    const stopPrice = +document.getElementById('qt-stop-price').value || 0;
+    const pos = { symbol: sym, qty, avg_price: price, stop_loss: stopPrice, notes: '', added_date: buyDate ? (() => { const [y,m,d] = buyDate.split('-'); return `${d}/${m}/${y}`; })() : new Date().toLocaleDateString('en-GB') };
+    setStatus('שומר פוזיציה...', 'info');
+    const res = await apiPost({ action: 'addPosition', position: pos });
+    if (res.ok) {
+      positions.push(res.position || { ...pos, id: Date.now() });
+      setStatus('✓ פוזיציה נוספה', 'ok');
+      setTimeout(() => setStatus('', ''), 2000);
+      qtReset();
+      renderPositions();
+    } else {
+      setStatus('❌ ' + (res.error || 'שגיאה'), 'error');
+    }
+    return;
+  }
+
+  // מכירה — הוסף לעסקאות
+  if (!sellDate || !buyPrice) { alert('נא למלא תאריך מכירה ומחיר קנייה'); return; }
+  const [sy, sm, sd] = sellDate.split('-');
+  const sdStr = `${sd}/${sm}/${sy}`;
+  const bdStr = buyDate ? (() => { const [y,m,d] = buyDate.split('-'); return `${d}/${m}/${y}`; })() : sdStr;
+  const cost = +(qty * buyPrice).toFixed(2);
+  const gross = +(qty * (price - buyPrice)).toFixed(2);
+  const tax = +(gross * 0.25).toFixed(2);
+  const net = +(gross - tax).toFixed(2);
+  const pct = +(((price - buyPrice) / buyPrice) * 100).toFixed(2);
+  const hold = buyDate ? Math.round(Math.abs(parseDD(sdStr) - parseDD(bdStr)) / 86400000) : 0;
+  const month = `${sy}-${sm}`;
+  const trade = { symbol: sym, buy_date: bdStr, sell_date: sdStr, qty, buy_price: buyPrice, sell_price: price, cost, gross, tax, net, pct, hold_days: hold, month, notes: '' };
+
+  setStatus('שומר עסקה...', 'info');
+  showLoading(true);
+  const res = await apiPost({ action: 'add', trade });
+  if (res.ok) {
+    setStatus('✓ עסקה נוספה', 'ok');
+    setTimeout(() => setStatus('', ''), 2000);
+    qtReset();
+    await load();
+    renderAll();
+  } else {
+    setStatus('❌ ' + (res.error || 'שגיאה'), 'error');
+  }
+  showLoading(false);
+}
+
+function qtReset() {
+  ['qt-symbol','qt-qty','qt-price','qt-buy-price','qt-buy-date','qt-sell-date','qt-stop-price'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('qt-live-price').textContent = '—';
+  document.getElementById('qt-live-price').style.color = '#16a37f';
+  document.getElementById('qt-preview').style.display = 'none';
+  document.getElementById('qt-sizer-result').innerHTML = '<div style="color:#aaa;font-size:12px">הזן מחיר וסטופ לחישוב כמות מומלצת</div>';
+}
+
+// ══════════════════════════════════════════════════════════════
+// PROGRESS — התקדמות לאורך זמן
+// ══════════════════════════════════════════════════════════════
+function renderProgress() {
+  const kpisEl = document.getElementById('progress-kpis');
+  if (!kpisEl || !trades.length) return;
+
+  // חלק לחצאים — 6 חודשים ראשונים vs 6 אחרונים
+  const sorted = [...trades].sort((a,b) => parseDD(a.sell_date) - parseDD(b.sell_date));
+  const half = Math.floor(sorted.length / 2);
+  const firstHalf = sorted.slice(0, half);
+  const secondHalf = sorted.slice(half);
+
+  const calcHalf = (arr) => {
+    const wins = arr.filter(t => t.net > 0);
+    const losses = arr.filter(t => t.net < 0);
+    const gp = wins.reduce((s,t) => s+t.gross, 0);
+    const gl = Math.abs(losses.reduce((s,t) => s+t.gross, 0));
+    return {
+      winRate: arr.length ? Math.round(wins.length / arr.length * 100) : 0,
+      pf: gl > 0 ? +(gp/gl).toFixed(2) : 999,
+      avgNet: arr.length ? arr.reduce((s,t) => s+t.net, 0) / arr.length : 0,
+      avgHold: arr.length ? arr.reduce((s,t) => s+(t.hold_days||0), 0) / arr.length : 0,
+    };
+  };
+
+  const f = calcHalf(firstHalf);
+  const s = calcHalf(secondHalf);
+
+  const trend = (oldV, newV, higherIsBetter = true) => {
+    const diff = newV - oldV;
+    const pct = oldV ? Math.abs(diff / oldV * 100).toFixed(0) : 0;
+    if (Math.abs(diff) < 0.01) return { cls: 'trend-flat', icon: '→', txt: 'ללא שינוי' };
+    const better = higherIsBetter ? diff > 0 : diff < 0;
+    return { cls: better ? 'trend-up' : 'trend-down', icon: diff > 0 ? '▲' : '▼', txt: `${pct}% ${better ? 'שיפור' : 'ירידה'}` };
+  };
+
+  const metrics = [
+    { label: 'Win Rate', old: f.winRate + '%', new: s.winRate + '%', tr: trend(f.winRate, s.winRate) },
+    { label: 'Profit Factor', old: f.pf, new: s.pf, tr: trend(f.pf, s.pf) },
+    { label: 'Avg נטו לעסקה', old: f$(Math.round(f.avgNet)), new: f$(Math.round(s.avgNet)), tr: trend(f.avgNet, s.avgNet) },
+    { label: 'Avg Hold (ימים)', old: f.avgHold.toFixed(1), new: s.avgHold.toFixed(1), tr: trend(f.avgHold, s.avgHold, false) },
+  ];
+
+  kpisEl.innerHTML = metrics.map(m => `
+    <div class="prog-kpi">
+      <div class="prog-kpi-label">${m.label}</div>
+      <div style="display:flex;justify-content:center;gap:12px;align-items:center;margin:6px 0">
+        <div style="text-align:center"><div style="font-size:11px;color:#aaa">ראשית</div><div style="font-weight:500">${m.old}</div></div>
+        <div class="${m.tr.cls}" style="font-size:18px">${m.tr.icon}</div>
+        <div style="text-align:center"><div style="font-size:11px;color:#aaa">עכשיו</div><div style="font-weight:600;font-size:16px">${m.new}</div></div>
+      </div>
+      <div class="prog-kpi-sub ${m.tr.cls}">${m.tr.txt}</div>
+    </div>`).join('');
+
+  // גרף Win Rate לאורך זמן (לפי חודש)
+  destroyChart('winrate-time'); destroyChart('rolling-avg'); destroyChart('pf-time'); destroyChart('week-of-month');
+  const st = calcStats();
+  const ts = { color: '#aaa', font: { size: 10 } };
+
+  // Win Rate חודשי
+  const wrData = st.monthArr.map(m => ({ label: m.label, wr: m.trades ? Math.round(m.wins / m.trades * 100) : 0 }));
+  charts['winrate-time'] = new Chart(document.getElementById('chart-winrate-time'), {
+    type: 'line',
+    data: { labels: wrData.map(d => d.label), datasets: [
+      { data: wrData.map(d => d.wr), borderColor: BLUE, backgroundColor: 'rgba(55,138,221,0.07)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 3 },
+      { data: wrData.map(() => 60), borderColor: '#eee', borderWidth: 1, borderDash: [4,4], pointRadius: 0, fill: false }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + '%' } } }, scales: { x: { ticks: { ...ts, maxRotation: 45 }, grid: { display: false } }, y: { ticks: { ...ts, callback: v => v + '%' }, min: 0, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } } } }
+  });
+
+  // ממוצע נע 3 חודשים
+  const nets = st.monthArr.map(m => m.net);
+  const rollingAvg = nets.map((_, i) => {
+    const window = nets.slice(Math.max(0, i-2), i+1);
+    return Math.round(window.reduce((s,v) => s+v, 0) / window.length);
+  });
+  charts['rolling-avg'] = new Chart(document.getElementById('chart-rolling-avg'), {
+    type: 'bar',
+    data: { labels: st.monthArr.map(m => m.label), datasets: [
+      { data: nets, backgroundColor: nets.map(v => v >= 0 ? 'rgba(22,163,127,0.3)' : 'rgba(217,79,79,0.3)'), borderRadius: 3, label: 'חודשי' },
+      { data: rollingAvg, type: 'line', borderColor: BLUE, borderWidth: 2, pointRadius: 2, fill: false, tension: 0.3, label: 'ממוצע נע 3M' }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { font: { size: 10 }, color: '#888', boxWidth: 12 } }, tooltip: { callbacks: { label: c => f$(c.raw) } } }, scales: { x: { ticks: { ...ts, maxRotation: 45 }, grid: { display: false } }, y: { ticks: { ...ts, callback: v => '$' + (v/1000).toFixed(0) + 'k' }, grid: { color: 'rgba(0,0,0,0.05)' } } } }
+  });
+
+  // Profit Factor לאורך זמן
+  const pfByMonth = st.monthArr.map(m => {
+    const mTrades = trades.filter(t => t.month === m.month);
+    const gp = mTrades.filter(t=>t.net>0).reduce((s,t)=>s+t.gross,0);
+    const gl = Math.abs(mTrades.filter(t=>t.net<0).reduce((s,t)=>s+t.gross,0));
+    return gl > 0 ? +(gp/gl).toFixed(2) : gp > 0 ? 5 : 0;
+  });
+  charts['pf-time'] = new Chart(document.getElementById('chart-pf-time'), {
+    type: 'line',
+    data: { labels: st.monthArr.map(m => m.label), datasets: [
+      { data: pfByMonth, borderColor: GREEN, backgroundColor: 'rgba(22,163,127,0.07)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 3 },
+      { data: pfByMonth.map(() => 1), borderColor: '#eee', borderWidth: 1, borderDash: [4,4], pointRadius: 0, fill: false }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { ...ts, maxRotation: 45 }, grid: { display: false } }, y: { ticks: ts, min: 0, grid: { color: 'rgba(0,0,0,0.05)' } } } }
+  });
+
+  // שבוע חזק בחודש
+  const weekBuckets = { 'שבוע 1\n(1-7)': 0, 'שבוע 2\n(8-14)': 0, 'שבוע 3\n(15-21)': 0, 'שבוע 4\n(22+)': 0 };
+  trades.forEach(t => {
+    if (!t.sell_date) return;
+    const day = parseInt(t.sell_date.split('/')[0]);
+    if (day <= 7) weekBuckets['שבוע 1\n(1-7)'] += t.net;
+    else if (day <= 14) weekBuckets['שבוע 2\n(8-14)'] += t.net;
+    else if (day <= 21) weekBuckets['שבוע 3\n(15-21)'] += t.net;
+    else weekBuckets['שבוע 4\n(22+)'] += t.net;
+  });
+  const wkData = Object.values(weekBuckets).map(Math.round);
+  charts['week-of-month'] = new Chart(document.getElementById('chart-week-of-month'), {
+    type: 'bar',
+    data: { labels: Object.keys(weekBuckets), datasets: [{ data: wkData, backgroundColor: wkData.map(v => v >= 0 ? 'rgba(22,163,127,0.8)' : 'rgba(217,79,79,0.8)'), borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => f$(c.raw) } } }, scales: { x: { ticks: ts, grid: { display: false } }, y: { ticks: { ...ts, callback: v => '$' + (v/1000).toFixed(0) + 'k' }, grid: { color: 'rgba(0,0,0,0.05)' } } } }
+  });
+}
+
+
+// ── Seed ────────────────────────────────────────────────────
+function updateBannerVisibility(){updateBanner();}
+async function seedToSheets(){
+  setStatus('בודק נתונים קיימים...','info');showLoading(true);
+  try{const r=await fetch(API_URL+'?action=getTrades').then(x=>x.json());
+    if(r.ok&&r.trades&&r.trades.length>0){setStatus('ℹ️ כבר קיימות '+r.trades.length+' עסקאות','ok');trades=r.trades.map(normalizeTrade);updateBanner();renderAll();showLoading(false);return;}
+  }catch(e){}
+  if(!confirm('לטעון 108 עסקאות היסטוריות?')){showLoading(false);return;}
+  setStatus('מעלה נתונים...','info');
+  const res=await apiPost({action:'seedAll',trades:SEED});
+  if(res.ok){setStatus('✓ '+res.count+' עסקאות הועלו','ok');setTimeout(()=>setStatus('',''),3000);document.getElementById('seed-banner').style.display='none';await load();renderAll();}
+  else setStatus('❌ '+res.error,'error');
+  showLoading(false);
+}
+
+// ── Init ────────────────────────────────────────────────────
+(async()=>{
+  try{const d=localStorage.getItem('fifo_dark');if(d==='1'){darkMode=true;document.body.classList.add('dark');document.getElementById('dark-btn').textContent='☀️ Light';}}catch{}
+  await load();
+  updateBanner();
+  renderAll();
+  document.getElementById('last-updated').textContent='עודכן: '+new Date().toLocaleTimeString('he-IL');
+  // Auto-refresh prices if positions exist
+  if(positions.length>0) refreshPrices();
+  // הפעל polling כל 15 שניות (WebSocket ינסה להתחבר כשנכנסים לטאב פוזיציות)
+  startPollingFallback();
+})();
+</script>
+</body>
+</html>
