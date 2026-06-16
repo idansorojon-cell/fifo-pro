@@ -704,10 +704,11 @@ async function load() {
   if (!navigator.onLine) { setStatus('❌ אין חיבור לאינטרנט', 'error'); trades = []; return; }
   showLoading(true); setStatus('טוען נתונים...', 'info');
   try {
-    const [tr, gr, pr] = await Promise.all([
-      fetch(API_URL+'?action=getTrades').then(r=>r.json()),
-      fetch(API_URL+'?action=getGoal').then(r=>r.json()),
-      fetch(API_URL+'?action=getPositions').then(r=>r.json())
+    const [tr, gr, pr, wl] = await Promise.all([
+      fetch(API_URL+'?action=getTrades&t='+Date.now()).then(r=>r.json()),
+      fetch(API_URL+'?action=getGoal&t='+Date.now()).then(r=>r.json()),
+      fetch(API_URL+'?action=getPositions&t='+Date.now()).then(r=>r.json()),
+      fetch(API_URL+'?action=getWatchlist&t='+Date.now()).then(r=>r.json()).catch(err => ({ ok:false, error: err.message }))
     ]);
     if (!tr.ok) throw new Error(tr.error||'שגיאה בטעינת עסקאות');
     trades = (tr.trades||[]).map(normalizeTrade);
@@ -725,6 +726,16 @@ async function load() {
     } else {
       positions = loadPositionsLocal();
     }
+
+    // Watchlist חייב להגיע מה־Google Sheet כדי שכל מכשיר יראה את אותם נתונים
+    if (wl && wl.ok) {
+      watchlist = normalizeWatchlistRows(wl.watchlist || []);
+      saveWatchlist(); // גיבוי בלבד, לא מקור האמת
+    } else {
+      console.warn('getWatchlist failed, using local backup:', wl && wl.error);
+      loadWatchlist();
+    }
+
     updateBanner();
     setStatus('✓ עודכן: '+new Date().toLocaleTimeString('he-IL'), 'ok');
     setTimeout(()=>setStatus('',''),3000);
@@ -1720,11 +1731,49 @@ function renderSymNotes() {
 // ══════════════════════════════════════════════════════════════
 let watchlist = [];
 
+function normalizeWatchlistRows(rows) {
+  return (rows || []).map(w => ({
+    symbol: String(w.symbol || '').trim().toUpperCase(),
+    note: w.note || '',
+    added: w.added || ''
+  })).filter(w => w.symbol);
+}
+
 function loadWatchlist() {
   try { watchlist = JSON.parse(localStorage.getItem('fifo_watchlist') || '[]'); } catch { watchlist = []; }
+  watchlist = normalizeWatchlistRows(watchlist);
 }
+
 function saveWatchlist() {
   try { localStorage.setItem('fifo_watchlist', JSON.stringify(watchlist)); } catch {}
+}
+
+async function loadWatchlistFromSheets({silent=false} = {}) {
+  if (!isApiConfigured()) { loadWatchlist(); return false; }
+  try {
+    if (!silent) setStatus('טוען Watchlist מה־Database...', 'info');
+    const res = await fetch(API_URL + '?action=getWatchlist&t=' + Date.now(), { cache: 'no-store', redirect: 'follow' });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch (e) { throw new Error('getWatchlist לא החזיר JSON: ' + text.slice(0, 80)); }
+    if (!data.ok) throw new Error(data.error || 'שגיאה בטעינת Watchlist');
+
+    watchlist = normalizeWatchlistRows(data.watchlist || []);
+    saveWatchlist();
+    renderWatchlist();
+    if (!silent) {
+      setStatus('✓ Watchlist נטען מה־Database: ' + watchlist.length + ' סימבולים', 'ok');
+      setTimeout(() => setStatus('', ''), 2500);
+    }
+    return true;
+  } catch(err) {
+    console.error('loadWatchlistFromSheets error:', err);
+    if (!silent) setStatus('❌ Watchlist לא נטען מה־Database: ' + err.message, 'error');
+    loadWatchlist();
+    renderWatchlist();
+    return false;
+  }
 }
 
 async function addWatchlistItem() {
@@ -1736,58 +1785,72 @@ async function addWatchlistItem() {
     return;
   }
   const added = new Date().toLocaleDateString('he-IL');
-  const item = { symbol: sym, note, added };
 
-  // שמור מקומית מיד
-  watchlist.push(item);
-  try { localStorage.setItem('fifo_watchlist', JSON.stringify(watchlist)); } catch {}
-  document.getElementById('watchlist-input').value = '';
-  document.getElementById('watchlist-note').value = '';
-  renderWatchlist();
-
-  // שמור ב-Sheets דרך GET (עוקף CORS)
   try {
+    setStatus('שומר ' + sym + ' ב־Database...', 'info');
     const url = API_URL + '?action=addWatchlist&symbol=' + encodeURIComponent(sym) +
                 '&note=' + encodeURIComponent(note) +
                 '&added=' + encodeURIComponent(added) + '&t=' + Date.now();
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.ok) {
-      setStatus('✓ ' + sym + ' נוסף ל-Watchlist', 'ok');
-      setTimeout(() => setStatus('', ''), 2000);
-    } else {
-      console.error('addWatchlist:', data.error);
-    }
+    const res = await fetch(url, { cache: 'no-store', redirect: 'follow' });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch (e) { throw new Error('addWatchlist לא החזיר JSON: ' + text.slice(0, 80)); }
+    if (!data.ok) throw new Error(data.error || 'שגיאה בשמירה');
+
+    document.getElementById('watchlist-input').value = '';
+    document.getElementById('watchlist-note').value = '';
+
+    // אחרי שמירה — מושך שוב מה־Sheet כדי לוודא שזה באמת מה שמוצג בכל מכשיר
+    await loadWatchlistFromSheets({silent:true});
+    setStatus('✓ ' + sym + ' נשמר ונטען מה־Database', 'ok');
+    setTimeout(() => setStatus('', ''), 2500);
+
+    fetchLivePrice(sym).then(d => {
+      if (d) { liveData[sym] = d; renderWatchlist(); }
+    });
   } catch(err) {
     console.error('addWatchlist error:', err);
+    setStatus('❌ לא נשמר ב־Database: ' + err.message, 'error');
   }
-
-  // טען מחיר מיד
-  fetchLivePrice(sym).then(d => {
-    if (d) { liveData[sym] = d; renderWatchlist(); }
-  });
 }
 
 async function removeWatchlistItem(sym) {
-  watchlist = watchlist.filter(w => w.symbol !== sym);
-  try { localStorage.setItem('fifo_watchlist', JSON.stringify(watchlist)); } catch {}
-  renderWatchlist();
+  if (!confirm('להסיר את ' + sym + ' מה־Watchlist?')) return;
   try {
+    setStatus('מוחק ' + sym + ' מה־Database...', 'info');
     const url = API_URL + '?action=removeWatchlist&symbol=' + encodeURIComponent(sym) + '&t=' + Date.now();
-    await fetch(url);
-  } catch(err) { console.error('removeWatchlist error:', err); }
+    const res = await fetch(url, { cache: 'no-store', redirect: 'follow' });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch (e) { throw new Error('removeWatchlist לא החזיר JSON: ' + text.slice(0, 80)); }
+    if (!data.ok) throw new Error(data.error || 'שגיאה במחיקה');
+    await loadWatchlistFromSheets({silent:true});
+    setStatus('✓ ' + sym + ' נמחק מה־Database', 'ok');
+    setTimeout(() => setStatus('', ''), 2000);
+  } catch(err) {
+    console.error('removeWatchlist error:', err);
+    setStatus('❌ לא נמחק מה־Database: ' + err.message, 'error');
+  }
 }
 
 async function refreshWatchlist() {
-  if (!watchlist.length) return;
-  setStatus('מרענן Watchlist...', 'info');
+  setStatus('מרענן Watchlist מה־Database...', 'info');
+  await loadWatchlistFromSheets({silent:true});
+  if (!watchlist.length) {
+    renderWatchlist();
+    setStatus('Watchlist ריק ב־Database', 'warn');
+    setTimeout(() => setStatus('', ''), 2500);
+    return;
+  }
   const syms = watchlist.map(w => w.symbol);
   const prices = await fetchAllPrices(syms);
   Object.entries(prices).forEach(([sym, p]) => {
     if (p && p.ok) liveData[sym] = { ...(liveData[sym]||{}), ...p, updated: new Date().toLocaleTimeString('he-IL') };
   });
   renderWatchlist();
-  setStatus('✓ Watchlist עודכן', 'ok');
+  setStatus('✓ Watchlist עודכן מה־Database', 'ok');
   setTimeout(() => setStatus('', ''), 2000);
 }
 
@@ -1795,7 +1858,7 @@ function renderWatchlist() {
   const grid = document.getElementById('watchlist-grid');
   if (!grid) return;
   if (!watchlist.length) {
-    grid.innerHTML = '<div style="color:#aaa;font-size:13px;grid-column:1/-1">הוסף סימבולים למעקב</div>';
+    grid.innerHTML = '<div style="color:#aaa;font-size:13px;grid-column:1/-1">אין סימבולים ב־Watchlist ב־Database</div>';
     return;
   }
   grid.innerHTML = watchlist.map(w => {
@@ -1815,7 +1878,7 @@ function renderWatchlist() {
       ${post ? `<div class="wl-meta">🌙 AH: $${post.toFixed(2)}</div>` : ''}
       ${inTrades.length ? `<div class="wl-meta" style="margin-top:6px">${inTrades.length} עסקאות היסטוריות | ${totalPnl >= 0 ? '+' : ''}${f$(Math.round(totalPnl))}</div>` : ''}
       ${w.note ? `<div class="wl-note">${w.note}</div>` : ''}
-      <div class="wl-meta">${live?.updated || 'לא נטען'}</div>
+      <div class="wl-meta">${live?.updated || 'נטען מה־Database'}</div>
     </div>`;
   }).join('');
 }
@@ -2105,7 +2168,6 @@ async function seedToSheets(){
 // ── Init ────────────────────────────────────────────────────
 (async()=>{
   try{const d=localStorage.getItem('fifo_dark');if(d==='1'){darkMode=true;document.body.classList.add('dark');document.getElementById('dark-btn').textContent='☀️ Light';}}catch{}
-  loadWatchlist();
   await load();
   updateBanner();
   renderAll();
