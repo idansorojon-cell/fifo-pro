@@ -1727,7 +1727,7 @@ function saveWatchlist() {
   try { localStorage.setItem('fifo_watchlist', JSON.stringify(watchlist)); } catch {}
 }
 
-function addWatchlistItem() {
+async function addWatchlistItem() {
   const sym = (document.getElementById('watchlist-input').value || '').trim().toUpperCase();
   const note = (document.getElementById('watchlist-note').value || '').trim();
   if (!sym) return;
@@ -1735,21 +1735,47 @@ function addWatchlistItem() {
     alert(sym + ' כבר ברשימת המעקב');
     return;
   }
-  watchlist.push({ symbol: sym, note, added: new Date().toLocaleDateString('he-IL') });
-  saveWatchlist();
+  const added = new Date().toLocaleDateString('he-IL');
+  const item = { symbol: sym, note, added };
+
+  // שמור מקומית מיד
+  watchlist.push(item);
+  try { localStorage.setItem('fifo_watchlist', JSON.stringify(watchlist)); } catch {}
   document.getElementById('watchlist-input').value = '';
   document.getElementById('watchlist-note').value = '';
   renderWatchlist();
+
+  // שמור ב-Sheets דרך GET (עוקף CORS)
+  try {
+    const url = API_URL + '?action=addWatchlist&symbol=' + encodeURIComponent(sym) +
+                '&note=' + encodeURIComponent(note) +
+                '&added=' + encodeURIComponent(added) + '&t=' + Date.now();
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.ok) {
+      setStatus('✓ ' + sym + ' נוסף ל-Watchlist', 'ok');
+      setTimeout(() => setStatus('', ''), 2000);
+    } else {
+      console.error('addWatchlist:', data.error);
+    }
+  } catch(err) {
+    console.error('addWatchlist error:', err);
+  }
+
   // טען מחיר מיד
   fetchLivePrice(sym).then(d => {
     if (d) { liveData[sym] = d; renderWatchlist(); }
   });
 }
 
-function removeWatchlistItem(sym) {
+async function removeWatchlistItem(sym) {
   watchlist = watchlist.filter(w => w.symbol !== sym);
-  saveWatchlist();
+  try { localStorage.setItem('fifo_watchlist', JSON.stringify(watchlist)); } catch {}
   renderWatchlist();
+  try {
+    const url = API_URL + '?action=removeWatchlist&symbol=' + encodeURIComponent(sym) + '&t=' + Date.now();
+    await fetch(url);
+  } catch(err) { console.error('removeWatchlist error:', err); }
 }
 
 async function refreshWatchlist() {
